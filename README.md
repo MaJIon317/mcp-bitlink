@@ -1,8 +1,9 @@
-# bitlink-invoices
+# Bitlink invoices MCP
 
-MCP gateway for the **Bitlink** payment API, packaged as an [OpenAI plugin](https://developers.openai.com/plugins/build/plugins) for ChatGPT / Codex (and optionally Cursor).
-
-The package does **not** hardcode environment URLs. Dev/prod endpoints are registered in the client; the plugin maps a registered MCP app id.
+Standard MCP server for the Bitlink payment API, using Streamable HTTP.
+An agent connects directly with a URL and a merchant Bearer token.
+No OpenAI App ID or plugin ID is required by the server or package.
+Plugin manifests and skills are optional client packaging.
 
 ## Tools
 
@@ -12,32 +13,63 @@ The package does **not** hardcode environment URLs. Dev/prod endpoints are regis
 | `create_invoice` | Create an invoice and return `paymentLink` |
 | `get_invoice` | Fetch one invoice by id |
 
-`whichWallet` is only `new` \| `user`. If unclear, the agent asks «новому или текущему пользователю?» and maps the answer itself.
+`whichWallet` accepts `new` or `user`.
 
-## Plugin layout (OpenAI)
+## Connect an agent
 
-```text
-plugin.json                 # Agent Plugins manifest + extensions.com.openai
-mcp.json                    # portable MCP config (empty servers — no hardcoded URLs)
-.app.json                   # maps to registered ChatGPT/Codex MCP app id
-.codex-plugin/plugin.json   # Codex compatibility overlay
-.mcp.json                   # compatibility MCP file (empty servers)
-skills/bitlink-invoices/    # workflow skill
-.agents/plugins/marketplace.json
+- Transport: **Streamable HTTP**
+- Development endpoint: `https://mcp.dev.bitlink.ch/mcp`
+- Authentication: `Authorization: Bearer <merchant-token>`
+
+Set these values in the agent's MCP settings. The client must support
+Streamable HTTP and sending a Bearer token. OAuth-only or stdio-only clients
+need a compatible authentication flow or transport bridge. Configuration-file
+syntax varies between clients.
+
+For clients accepting JSON `mcpServers` configuration:
+
+```json
+{
+  "mcpServers": {
+    "bitlink-invoices": {
+      "url": "https://mcp.dev.bitlink.ch/mcp",
+      "headers": {
+        "Authorization": "Bearer <merchant-token>"
+      }
+    }
+  }
+}
 ```
 
-See [docs/openai-plugin-connect.md](./docs/openai-plugin-connect.md).
+Replace the token locally; never commit it. Some clients require an additional
+transport field (`http` or `streamable-http`); use their documented syntax.
+For another deployment, change the connection URL.
 
-### Environments (ops)
+### Codex
 
-| Env | Example MCP URL |
-|-----|-----------------|
-| Dev | `http://mcp.dev.bitlink.ch/mcp` |
-| Prod | `http://dev.bitlink.ch/mcp` |
+Configure a direct connection in `.codex/config.toml`:
 
-Put these only in ChatGPT/Codex connection settings (or infra), not in committed plugin MCP config.
+```toml
+[mcp_servers.bitlink-invoices]
+url = "https://mcp.dev.bitlink.ch/mcp"
+bearer_token_env_var = "BITLINK_API_TOKEN"
+```
 
-## Run the MCP server
+Set `BITLINK_API_TOKEN` in the Codex process environment.
+See the [Codex MCP documentation](https://developers.openai.com/codex/mcp/).
+
+### Cursor
+
+`cursor.mcp.json` uses Cursor plugin variables `BITLINK_MCP_URL` and
+`BITLINK_API_TOKEN`. Set them when installing the Cursor plugin.
+For a direct connection, use the JSON example in the client's MCP settings.
+
+### ChatGPT
+
+See [connection notes](docs/openai-plugin-connect.md). Client account setup
+is separate from the portable server and package.
+
+## Run the server
 
 ```bash
 cp .env.example .env
@@ -45,33 +77,27 @@ npm install
 npm run dev
 ```
 
-```dotenv
-HOST=0.0.0.0
-PORT=3000
-CORS_ORIGIN=*
-CRYPTO_API_BASE_URL=https://api.example.com/api
-```
+Set `CRYPTO_API_BASE_URL` to the Bitlink REST API for your environment.
+Default listen address: `0.0.0.0:3000`.
 
 - Health: `GET /health`
-- MCP: `POST/GET /mcp` with `Authorization: Bearer <merchant-token>`
-- Missing token → `401` + `WWW-Authenticate`
+- MCP endpoint: `/mcp`
+- Missing merchant token: `401` with `WWW-Authenticate`
 
-## Connect ChatGPT / Codex
+Merchant tokens are forwarded per request to the Bitlink REST API. No shared
+merchant API key is included in the package. Remote deployments should use HTTPS.
 
-1. Enable Developer mode
-2. Register MCP with the **env URL** (`…/mcp`) + merchant auth
-3. Copy `plugin_asdk_app…` / `asdk_app…` id into `.app.json`
-4. Install from local marketplace **Bitlink local plugins**
+## Optional plugin files
 
-Details: [docs/openai-plugin-connect.md](./docs/openai-plugin-connect.md).
+```text
+plugin.json                 # portable manifest and optional OpenAI listing metadata
+mcp.json                    # portable Streamable HTTP declaration
+.codex-plugin/plugin.json   # compatibility manifest
+.mcp.json                   # compatibility server declaration
+.cursor-plugin/plugin.json  # Cursor packaging and variables
+cursor.mcp.json             # Cursor connection template
+skills/bitlink-invoices/    # optional workflow instructions
+```
 
-## Connect Cursor
-
-Cursor uses `.cursor-plugin/plugin.json` + `cursor.mcp.json` with variables:
-
-- `BITLINK_MCP_URL` — e.g. `http://mcp.dev.bitlink.ch/mcp`
-- `BITLINK_API_TOKEN` — merchant Sanctum token
-
-## Auth model
-
-Merchant Sanctum token per request → forwarded to Bitlink REST (`CRYPTO_API_BASE_URL`). No shared API key in the plugin.
+The packaged endpoint defaults to development. Configure authentication in
+the client; no merchant token is embedded in the manifests.

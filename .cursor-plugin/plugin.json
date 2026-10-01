@@ -17,7 +17,7 @@
       "BITLINK_MCP_URL": {
         "type": "string",
         "title": "MCP server URL",
-        "description": "Absolute URL of the running Bitlink invoices MCP endpoint for this environment (dev/prod/local). Example: http://mcp.dev.bitlink.ch/mcp"
+        "description": "URL of the Bitlink Streamable HTTP MCP endpoint. Example: https://mcp.dev.bitlink.ch/mcp"
       },
       "BITLINK_API_TOKEN": {
         "type": "string",

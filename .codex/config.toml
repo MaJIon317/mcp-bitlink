@@ -1,11 +1,5 @@
-# Codex project settings for the Bitlink Invoices plugin.
-# Plugin packaging follows https://developers.openai.com/plugins/build/plugins
-#
-# Do NOT put environment MCP URLs here. Register the MCP connection in
-# ChatGPT Developer mode (or Codex), then wire the resulting
-# plugin_asdk_app… / asdk_app… id into ./.app.json.
-#
-# After the plugin is listed in a local marketplace (see README), enable it:
-#
-# [plugins."bitlink-invoices@local-repo"]
-# enabled = true
+# Direct Streamable HTTP connection; no plugin or App ID required.
+# Set BITLINK_API_TOKEN in the Codex process environment.
+[mcp_servers.bitlink-invoices]
+url = "https://mcp.dev.bitlink.ch/mcp"
+bearer_token_env_var = "BITLINK_API_TOKEN"

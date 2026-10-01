@@ -1,3 +1,8 @@
 {
-  "mcpServers": {}
+  "mcpServers": {
+    "bitlink-invoices": {
+      "type": "streamable-http",
+      "url": "https://mcp.dev.bitlink.ch/mcp"
+    }
+  }
 }

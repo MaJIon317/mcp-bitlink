@@ -18,19 +18,21 @@
   ],
   "extensions": {
     "com.openai": {
-      "apps": "./.app.json",
       "interface": {
         "displayName": "Bitlink Invoices",
-        "shortDescription": "Create and manage Bitlink payment invoices from ChatGPT and Codex.",
-        "longDescription": "Use Bitlink invoice tools to list invoices, create payment links, and check payment status for the authenticated merchant. Connect your Bitlink MCP server once in developer mode; this plugin does not hardcode environment URLs.",
+        "shortDescription": "Manage Bitlink invoices",
+        "longDescription": "Use the Bitlink MCP server over Streamable HTTP to list invoices, create payment links, and check payment status for the authenticated merchant.",
         "developerName": "Bitlink",
         "category": "Productivity",
-        "capabilities": ["Read", "Write"],
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
         "websiteURL": "https://bitlink.ch",
         "defaultPrompt": [
           "Create a Bitlink invoice for 100 USD for a new customer.",
           "List my pending Bitlink invoices.",
-          "Get the status of invoice inv_…"
+          "Get the status of invoice inv_\u2026"
         ]
       }
     }
