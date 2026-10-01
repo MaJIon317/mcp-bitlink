@@ -42,8 +42,12 @@ const server = createHttpServer(async (request, response) => {
     response.end(JSON.stringify({ message: 'Not found' }));
 });
 
-server.listen(env.PORT, '127.0.0.1', () => {
+server.listen(env.PORT, env.HOST, () => {
+    const displayHost = env.HOST === '0.0.0.0' ? '127.0.0.1' : env.HOST;
     rootLogger.info('MCP server listening', {
-        url: `http://127.0.0.1:${env.PORT}/mcp`,
+        host: env.HOST,
+        port: env.PORT,
+        healthUrl: `http://${displayHost}:${env.PORT}/health`,
+        mcpUrl: `http://${displayHost}:${env.PORT}/mcp`,
     });
 });

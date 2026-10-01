@@ -78,6 +78,7 @@ Example `.env`:
 
 ```dotenv
 NODE_ENV=development
+HOST=0.0.0.0
 PORT=3000
 CRYPTO_API_BASE_URL=https://api.example.com/api
 CRYPTO_API_TIMEOUT_MS=10000
@@ -85,6 +86,9 @@ MCP_SERVER_NAME=bitlink-invoices
 MCP_SERVER_VERSION=0.1.0
 LOG_LEVEL=info
 ```
+
+`HOST=0.0.0.0` слушает на всех интерфейсах (нужно для доступа по домену/IP).  
+Для только локального доступа: `HOST=127.0.0.1`.
 
 Health check:
 
