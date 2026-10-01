@@ -1,12 +1,3 @@
 {
-  "mcpServers": {
-    "bitlink-invoices": {
-      "type": "http",
-      "url": "${BITLINK_MCP_URL}",
-      "bearer_token_env_var": "BITLINK_API_TOKEN",
-      "headers": {
-        "Authorization": "Bearer ${BITLINK_API_TOKEN}"
-      }
-    }
-  }
+  "mcpServers": {}
 }

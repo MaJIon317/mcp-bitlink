@@ -1,19 +1,11 @@
-# Codex CLI / IDE / Desktop MCP config (project-scoped).
-# Docs: https://learn.chatgpt.com/docs/extend/mcp
+# Codex project settings for the Bitlink Invoices plugin.
+# Plugin packaging follows https://developers.openai.com/plugins/build/plugins
 #
-# 1. Export your merchant token:
-#    export BITLINK_API_TOKEN="your-sanctum-token"
+# Do NOT put environment MCP URLs here. Register the MCP connection in
+# ChatGPT Developer mode (or Codex), then wire the resulting
+# plugin_asdk_app… / asdk_app… id into ./.app.json.
 #
-# 2. Set the MCP URL to your deployed HTTPS endpoint (or local):
-#    export BITLINK_MCP_URL="https://mcp.example.com/mcp"
+# After the plugin is listed in a local marketplace (see README), enable it:
 #
-# 3. Restart Codex / run: codex mcp list
-#
-# Optional CLI install:
-#   codex mcp add bitlink-invoices \
-#     --url "$BITLINK_MCP_URL" \
-#     --bearer-token-env-var BITLINK_API_TOKEN
-
-[mcp_servers.bitlink-invoices]
-url = "http://127.0.0.1:3500/mcp"
-bearer_token_env_var = "BITLINK_API_TOKEN"
+# [plugins."bitlink-invoices@local-repo"]
+# enabled = true

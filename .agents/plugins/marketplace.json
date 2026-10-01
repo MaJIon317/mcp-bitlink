@@ -1,0 +1,20 @@
+{
+  "name": "local-repo",
+  "interface": {
+    "displayName": "Bitlink local plugins"
+  },
+  "plugins": [
+    {
+      "name": "bitlink-invoices",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
