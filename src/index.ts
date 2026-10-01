@@ -1,28 +1,15 @@
 import { createServer as createHttpServer } from 'node:http';
-import { createMcpHandler } from '@modelcontextprotocol/server';
 import { toNodeHandler } from '@modelcontextprotocol/node';
 import { env } from './config/env.js';
-import { extractBearerToken } from './auth/bearer.js';
 import { createConsoleLogger } from './logging/index.js';
-import { createServer } from './server/create-server.js';
+import { createInvoiceHandler } from './server/create-handler.js';
 
 const rootLogger = createConsoleLogger({
     name: env.MCP_SERVER_NAME,
     level: env.LOG_LEVEL,
 });
 
-const mcpHandler = createMcpHandler(({ requestInfo }) => {
-    const accessToken = extractBearerToken(requestInfo);
-
-    if (!accessToken) {
-        throw new Error('Authorization Bearer token is required');
-    }
-
-    return createServer({
-        accessToken,
-        logger: rootLogger.child({ component: 'mcp' }),
-    });
-});
+const mcpHandler = createInvoiceHandler(rootLogger);
 
 const nodeHandler = toNodeHandler(mcpHandler);
 
@@ -34,7 +21,12 @@ const server = createHttpServer(async (request, response) => {
     }
 
     if (request.url?.startsWith('/mcp')) {
-        await nodeHandler(request, response);
+        await nodeHandler({
+            ...(request.method === undefined ? {} : { method: request.method }),
+            ...(request.url === undefined ? {} : { url: request.url }),
+            headers: request.headers,
+            [Symbol.asyncIterator]: () => request[Symbol.asyncIterator](),
+        }, response);
         return;
     }
 

@@ -59,6 +59,10 @@ export class ApiClient {
         path: string,
         body?: unknown,
     ): Promise<T> {
+        if (!this.config.accessToken.trim()) {
+            throw new ApiError('Authorization Bearer token is required', 401, 'UNAUTHENTICATED');
+        }
+
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
         const url = `${this.config.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;

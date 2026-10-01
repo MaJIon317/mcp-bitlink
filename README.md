@@ -2,7 +2,7 @@
 
 MCP gateway for the **Bitlink** payment API. Cursor agents can create, list, and inspect invoices for the authenticated merchant.
 
-The plugin does **not** store a global API key. Every MCP HTTP request must include a merchant Sanctum token, which is forwarded to Bitlink as `Authorization: Bearer …`.
+The plugin does **not** store a global API key. MCP discovery (`initialize`, `tools/list`) works without credentials. Every invoice operation requires a merchant Sanctum token, which is forwarded to Bitlink as `Authorization: Bearer …`. Missing credentials return an authentication tool error without contacting Bitlink.
 
 ## Tools
 
