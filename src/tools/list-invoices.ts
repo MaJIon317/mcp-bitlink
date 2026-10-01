@@ -17,6 +17,7 @@ export function registerListInvoicesTool(
             description:
                 'List invoices owned by the authenticated merchant. Supports filtering, sorting and pagination.',
             inputSchema: listInvoicesInputSchema,
+            annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true },
         },
         async (input) => {
             try {

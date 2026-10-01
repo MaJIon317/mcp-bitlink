@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "bitlink-invoices",
   "version": "0.1.0",
-  "description": "Create, list, and inspect Bitlink payment invoices from Cursor via MCP. Each request forwards the merchant Bearer token to the Bitlink REST API; the plugin never stores a shared API key.",
+  "description": "Create, list, and inspect Bitlink payment invoices in ChatGPT, Codex, and Cursor via MCP. Invoice calls require a merchant Bearer token managed by the client.",
   "license": "UNLICENSED",
   "keywords": [
     "mcp",

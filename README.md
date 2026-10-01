@@ -1,8 +1,8 @@
 # bitlink-invoices
 
-MCP gateway for the **Bitlink** payment API. Cursor agents can create, list, and inspect invoices for the authenticated merchant.
+MCP gateway for the **Bitlink** payment API. ChatGPT, Codex, and Cursor agents can create, list, and inspect invoices for the authenticated merchant.
 
-The plugin does **not** store a global API key. Every MCP HTTP request must include a merchant Sanctum token, which is forwarded to Bitlink as `Authorization: Bearer …`.
+The plugin does **not** store a global API key. Invoice tool calls must include a merchant Sanctum token, which is forwarded to Bitlink as `Authorization: Bearer …`.
 
 ## Tools
 
@@ -126,7 +126,7 @@ Do **not** publish ephemeral tunnel URLs (`*.trycloudflare.com`) as the plugin h
 {
   "mcpServers": {
     "bitlink-invoices": {
-      "url": "http://127.0.0.1:3000/mcp",
+      "url": "https://mcp.dev.bitlink.ch/mcp",
       "headers": {
         "Authorization": "Bearer <merchant-api-token>"
       }
@@ -145,7 +145,7 @@ Portable config without secrets (auth remains client-managed):
   "mcpServers": {
     "bitlink-invoices": {
       "type": "streamable-http",
-      "url": "http://127.0.0.1:3000/mcp"
+      "url": "https://mcp.dev.bitlink.ch/mcp"
     }
   }
 }
@@ -173,3 +173,22 @@ Structured JSON logs go to stdout/stderr. Level via `LOG_LEVEL` (`debug` \| `inf
 - Prefer HTTPS for any non-localhost MCP URL.
 - Review this repository before connecting a production token.
 - Ephemeral tunnels are fine for private testing only, not for marketplace homepage metadata.
+
+## ChatGPT connection and deployment
+
+The production endpoint is **https://mcp.dev.bitlink.ch/mcp**.
+`initialize` and `tools/list` work without authentication; actual invoice calls
+require a request-scoped merchant Bearer token. Anonymous calls never contact the
+Bitlink API. Do not put tokens in plugin archives or source control.
+
+In ChatGPT developer mode, add/connect the MCP server using this exact URL and
+configure Bearer authentication in the client. A skills-only installation or a
+connection without merchant authentication cannot retrieve invoices. After updating
+the server, refresh the connection's tools and test “пришли список инвойсов”.
+`list_invoices` accepts `{}`; all filters are optional and it is read-only.
+
+Deploy with the existing process: install dependencies with `npm ci`, run
+`npm test`, `npm run typecheck`, `npm run build`, then restart with `npm start`.
+The compiled entry point is `dist/src/index.js`. Keep the existing
+`CRYPTO_API_BASE_URL` and reverse proxy target. Verify production `initialize`,
+`tools/list`, and an authenticated `tools/call` after restart.
