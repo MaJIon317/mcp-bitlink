@@ -1,0 +1,34 @@
+{
+  "name": "bitlink-invoices",
+  "version": "0.1.0",
+  "description": "Create, list, and inspect Bitlink payment invoices from Cursor via MCP. Each request forwards the merchant Bearer token to the Bitlink REST API; the plugin never stores a shared API key.",
+  "keywords": [
+    "mcp",
+    "bitlink",
+    "invoices",
+    "payments",
+    "checkout"
+  ],
+  "license": "UNLICENSED",
+  "mcpServers": ".mcp.json",
+  "variables": {
+    "type": "object",
+    "properties": {
+      "BITLINK_MCP_URL": {
+        "type": "string",
+        "title": "MCP server URL",
+        "description": "Absolute URL of the running Bitlink invoices MCP endpoint. Local default: http://127.0.0.1:3000/mcp",
+        "default": "http://127.0.0.1:3000/mcp"
+      },
+      "BITLINK_API_TOKEN": {
+        "type": "string",
+        "title": "Merchant API token",
+        "description": "Sanctum Bearer token for the authenticated merchant. Forwarded as Authorization on every MCP request."
+      }
+    },
+    "required": [
+      "BITLINK_MCP_URL",
+      "BITLINK_API_TOKEN"
+    ]
+  }
+}
