@@ -4,6 +4,8 @@ import {
     countryCodeSchema,
     currencyCodeSchema,
     invoiceIdSchema,
+    optionalEmailSchema,
+    optionalTrimmedString,
 } from './common.js';
 
 export const invoiceStatusSchema = z.enum([
@@ -14,17 +16,35 @@ export const invoiceStatusSchema = z.enum([
     'expired',
 ]);
 
-export const whichWalletSchema = z.enum(['new', 'user']);
+/**
+ * Bitlink `which_wallet` values.
+ * Agent should ask the end user in plain language (new vs current user),
+ * then pass only `new` or `user` here — never expose these tokens to the user.
+ */
+export const whichWalletSchema = z
+    .enum(['new', 'user'])
+    .describe(
+        'Payment wallet target for Bitlink which_wallet. ' +
+            'If the user did not specify, ask in plain language: for a new user/customer, or for the current/existing user? ' +
+            'Then set new for a new user/customer, user for the current/existing user. ' +
+            'Do not ask the end user to type which_wallet, new, or user.',
+    );
 
 export const createInvoiceInputSchema = z.object({
     whichWallet: whichWalletSchema,
     amount: amountSchema,
     currency: currencyCodeSchema,
-    object: z.string().trim().min(1).optional(),
-    name: z.string().trim().min(1),
-    email: z.email().optional(),
-    address: z.string().trim().min(1).optional(),
-    country: z.string().trim().min(1),
+    object: optionalTrimmedString(),
+    name: z.preprocess(
+        (value) => (typeof value === 'string' ? value.trim() : value),
+        z.string().min(1),
+    ),
+    email: optionalEmailSchema,
+    address: optionalTrimmedString(),
+    country: z.preprocess(
+        (value) => (typeof value === 'string' ? value.trim() : value),
+        z.string().min(1),
+    ),
 });
 
 export const getInvoiceInputSchema = z.object({

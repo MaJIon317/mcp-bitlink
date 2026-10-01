@@ -26,6 +26,9 @@ The plugin does **not** store a global API key. Every MCP HTTP request must incl
 }
 ```
 
+`whichWallet` is only `new` or `user` (Bitlink `which_wallet`).  
+If the user does not say who it is for, the agent should ask in plain language (new vs current user), then set `new` / `user` itself.
+
 ### `list_invoices` example
 
 ```json

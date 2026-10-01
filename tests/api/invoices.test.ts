@@ -183,6 +183,44 @@ describe('InvoicesApi', () => {
         );
     });
 
+    it('maps whichWallet=user to which_wallet=user', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+            new Response(JSON.stringify(successEnvelope(invoicePayload())), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            }),
+        );
+
+        const invoices = new InvoicesApi(
+            new ApiClient({
+                baseUrl: 'https://api.example.test/api',
+                accessToken: 'merchant-token',
+                timeoutMs: 1000,
+            }),
+        );
+
+        await invoices.create({
+            whichWallet: 'user',
+            amount: 50,
+            currency: 'USD',
+            name: 'Jane Doe',
+            country: 'USA',
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            'https://api.example.test/api/v1/invoices',
+            expect.objectContaining({
+                body: JSON.stringify({
+                    which_wallet: 'user',
+                    amount: 50,
+                    currency: 'USD',
+                    name: 'Jane Doe',
+                    country: 'USA',
+                }),
+            }),
+        );
+    });
+
     it('creates invoice using the current merchant token', async () => {
         const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
             new Response(JSON.stringify(successEnvelope(invoicePayload())), {

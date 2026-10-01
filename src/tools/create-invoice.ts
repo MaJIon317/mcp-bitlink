@@ -15,7 +15,9 @@ export function registerCreateInvoiceTool(
         'create_invoice',
         {
             description:
-                'Create a payment invoice for the authenticated merchant. Returns the invoice and payment link.',
+                'Create a payment invoice for the authenticated merchant. ' +
+                'If the user did not say who the wallet is for, ask whether it is for a new user/customer or the current/existing user, ' +
+                'then set whichWallet to "new" or "user" accordingly. Returns the invoice and payment link.',
             inputSchema: createInvoiceInputSchema,
         },
         async (input) => {
