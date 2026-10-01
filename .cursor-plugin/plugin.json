@@ -17,13 +17,13 @@
       "BITLINK_MCP_URL": {
         "type": "string",
         "title": "MCP server URL",
-        "description": "Absolute URL of the running Bitlink invoices MCP endpoint. Local default: http://127.0.0.1:3000/mcp",
-        "default": "http://127.0.0.1:3000/mcp"
+        "description": "Absolute URL of the running Bitlink invoices MCP endpoint, e.g. https://mcp.example.com/mcp or http://127.0.0.1:3500/mcp",
+        "default": "http://127.0.0.1:3500/mcp"
       },
       "BITLINK_API_TOKEN": {
         "type": "string",
         "title": "Merchant API token",
-        "description": "Sanctum Bearer token for the authenticated merchant. Forwarded as Authorization on every MCP request."
+        "description": "Sanctum Bearer token for the authenticated merchant. Used by Cursor headers and by Codex via bearer_token_env_var."
       }
     },
     "required": [

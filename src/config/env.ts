@@ -10,6 +10,8 @@ const schema = z.object({
     MCP_SERVER_NAME: z.string().min(1).default('bitlink-invoices'),
     MCP_SERVER_VERSION: z.string().min(1).default('0.1.0'),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+    /** CORS Access-Control-Allow-Origin. Use * for any origin (Codex/ChatGPT/browser clients). */
+    CORS_ORIGIN: z.string().min(1).default('*'),
 });
 
 const parsed = schema.safeParse(process.env);

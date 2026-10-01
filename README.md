@@ -120,6 +120,28 @@ Configure when installing:
 
 Do **not** publish ephemeral tunnel URLs (`*.trycloudflare.com`) as the plugin homepage. Point the marketplace listing at this **public Git repository** so reviewers can inspect the source.
 
+### Codex (CLI / IDE / Desktop)
+
+Project config: [`.codex/config.toml`](./.codex/config.toml).
+
+```bash
+export BITLINK_API_TOKEN="your-sanctum-token"
+# optional override of URL in config.toml:
+# edit .codex/config.toml url = "https://your-domain/mcp"
+
+codex mcp list
+```
+
+Or:
+
+```bash
+codex mcp add bitlink-invoices \
+  --url "https://your-domain/mcp" \
+  --bearer-token-env-var BITLINK_API_TOKEN
+```
+
+Codex sends `Authorization: Bearer <token>` from `BITLINK_API_TOKEN`. The server answers missing auth with HTTP `401` + `WWW-Authenticate` (not a crash).
+
 ### Manual `mcp.json` (Cursor)
 
 ```json
