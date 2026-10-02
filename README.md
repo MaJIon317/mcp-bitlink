@@ -17,73 +17,56 @@ Plugin manifests and skills are optional client packaging.
 
 ## Connect an agent
 
-- Transport: **Streamable HTTP**
-- Development endpoint: `https://mcp.dev.bitlink.ch/mcp`
-- Authentication: `Authorization: Bearer <merchant-token>`
+All connection addresses come from environment variables; no deployment URL
+is embedded in the source configuration.
 
-Set these values in the agent's MCP settings. The client must support
-Streamable HTTP and sending a Bearer token. OAuth-only or stdio-only clients
-need a compatible authentication flow or transport bridge. Configuration-file
-syntax varies between clients.
+Set in `.env` or the client process environment:
 
-For clients accepting JSON `mcpServers` configuration:
-
-```json
-{
-  "mcpServers": {
-    "bitlink": {
-      "url": "https://mcp.dev.bitlink.ch/mcp",
-      "headers": {
-        "Authorization": "Bearer <merchant-token>"
-      }
-    }
-  }
-}
+```dotenv
+BITLINK_MCP_URL=
 ```
 
-Replace the token locally; never commit it. Some clients require an additional
-transport field (`http` or `streamable-http`); use their documented syntax.
-For another deployment, change the connection URL.
+Supply the complete MCP endpoint in `BITLINK_MCP_URL`.
+Each user supplies their own raw merchant token in the client's authentication
+settings. There is no default or shared token in the server environment.
+The transport is Streamable HTTP.
 
-The compatibility `.mcp.json` sends `Authorization: Bearer ${BITLINK_API_TOKEN}`.
-It requires a client that expands environment variables in HTTP headers.
-Set `BITLINK_API_TOKEN` to the raw merchant token, without the `Bearer ` prefix,
-in the **client process environment**, then reconnect/restart the MCP client.
-The server's `.env` is not automatically available to a remote client.
-For Claude Code, use its native transport value `http` when importing this
-configuration into project MCP settings.
+`mcp.json`, `.mcp.json`, and `cursor.mcp.json` are connection templates.
+Clients that support expansion can read the compatibility templates directly.
+For clients that expect literal URLs and headers, generate local configurations:
 
-Portable `mcp.json` deliberately has no credential placeholder:
-[Agent Plugins 1.0](https://agent-plugins.org/plugin-authors/mcp-servers)
-treats remote headers as literals and does not expand environment variables.
-Configure its Bearer credential through the host's connection settings.
-Copying `${BITLINK_API_TOKEN}` into portable `mcp.json` would send the placeholder
-as a token rather than authenticate. The server rejects unresolved placeholders
-and malformed Bearer headers with `401`.
+```bash
+npm run mcp:config
+```
+
+The command reads `.env` and process environment (process values take priority),
+fails when the URL is missing, and writes `.local/`, which is ignored by Git.
+It only substitutes the URL: it never reads or embeds user tokens.
+Compatibility JSON files retain `${BITLINK_API_TOKEN}` for expansion by the
+user's client. Clients without that feature require user authentication settings.
+Portable `.local/mcp.json` contains the resolved endpoint; configure its Bearer
+credential in the host's connection settings. Portable Agent Plugins headers
+and URLs are literal and do not expand environment variables themselves.
+For Claude Code, use its native transport value `http` when importing a config.
 
 ### Codex
 
-Configure a direct connection in `.codex/config.toml`:
-
-```toml
-[mcp_servers.bitlink]
-url = "https://mcp.dev.bitlink.ch/mcp"
-bearer_token_env_var = "BITLINK_API_TOKEN"
-```
-
-Set `BITLINK_API_TOKEN` in the Codex process environment.
-See the [Codex MCP documentation](https://developers.openai.com/codex/mcp/).
+`.codex/config.toml.template` is a source template. The generator writes
+`.local/codex.toml` with the URL resolved from `BITLINK_MCP_URL` and
+`bearer_token_env_var = "BITLINK_API_TOKEN"`. Copy or merge this generated
+configuration into the client's active config. A local `.codex/config.toml`
+is ignored by Git. Each user sets their own `BITLINK_API_TOKEN` in the Codex process environment;
+Codex does not load this project's `.env` automatically.
 
 ### Cursor
 
-`cursor.mcp.json` uses Cursor plugin variables `BITLINK_MCP_URL` and
-`BITLINK_API_TOKEN`. Set them when installing the Cursor plugin.
-For a direct connection, use the JSON example in the client's MCP settings.
+Set plugin variables `BITLINK_MCP_URL` and `BITLINK_API_TOKEN` at installation,
+or import the generated `.local/cursor.mcp.json` into the client's settings.
 
 ### ChatGPT
 
-See [connection notes](docs/openai-plugin-connect.md). Client account setup
-is separate from the portable server and package.
+See [connection notes](docs/openai-plugin-connect.md). The connection URL comes
+from `BITLINK_MCP_URL`; client account setup and credentials remain host-managed.
 
 ## Run the server
 
@@ -107,13 +90,13 @@ merchant API key is included in the package. Remote deployments should use HTTPS
 
 ```text
 plugin.json                 # portable manifest and optional OpenAI listing metadata
-mcp.json                    # portable Streamable HTTP declaration
+mcp.json                    # Streamable HTTP template; render before portable use
 .codex-plugin/plugin.json   # compatibility manifest
 .mcp.json                   # compatibility connection with client-expanded Bearer token
 .cursor-plugin/plugin.json  # Cursor packaging and variables
 cursor.mcp.json             # Cursor connection template
-skills/bitlink/    # optional workflow instructions
+skills/bitlink/             # optional workflow instructions
 ```
 
-The packaged endpoint defaults to development. Configure authentication in
-the client; no merchant token is embedded in the manifests.
+There is no default endpoint. Set BITLINK_MCP_URL and configure authentication
+in the client; no merchant token is embedded in the source manifests.

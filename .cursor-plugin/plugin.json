@@ -17,7 +17,7 @@
       "BITLINK_MCP_URL": {
         "type": "string",
         "title": "MCP server URL",
-        "description": "URL of the Bitlink Streamable HTTP MCP endpoint. Example: https://mcp.dev.bitlink.ch/mcp"
+        "description": "Bitlink Streamable HTTP MCP endpoint from BITLINK_MCP_URL."
       },
       "BITLINK_API_TOKEN": {
         "type": "string",

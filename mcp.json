@@ -3,7 +3,7 @@
   "mcpServers": {
     "bitlink": {
       "type": "streamable-http",
-      "url": "https://mcp.dev.bitlink.ch/mcp"
+      "url": "${BITLINK_MCP_URL}"
     }
   }
 }

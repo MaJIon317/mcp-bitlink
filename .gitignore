@@ -9,3 +9,5 @@ coverage/
 .idea/
 .git/
 .vscode/
+.local/
+.codex/config.toml

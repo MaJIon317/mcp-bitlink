@@ -1,5 +1,5 @@
-# Direct Streamable HTTP connection; no plugin or App ID required.
+# Template: render with npm run mcp:config before use.
 # Set BITLINK_API_TOKEN in the Codex process environment.
 [mcp_servers.bitlink]
-url = "https://mcp.dev.bitlink.ch/mcp"
+url = "${BITLINK_MCP_URL}"
 bearer_token_env_var = "BITLINK_API_TOKEN"
