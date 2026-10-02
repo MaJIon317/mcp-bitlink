@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "bitlink-invoices": {
+    "bitlink": {
       "url": "${BITLINK_MCP_URL}",
       "headers": {
         "Authorization": "Bearer ${BITLINK_API_TOKEN}"

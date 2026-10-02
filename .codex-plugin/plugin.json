@@ -1,9 +1,9 @@
 {
-  "name": "bitlink-invoices",
+  "name": "bitlink",
   "version": "0.1.0",
   "description": "Create, list, and inspect Bitlink payment invoices. Merchant Bearer tokens are forwarded per request; the plugin never stores a shared API key.",
   "interface": {
-    "displayName": "Bitlink Invoices",
+    "displayName": "Bitlink",
     "shortDescription": "Manage Bitlink invoices",
     "longDescription": "Use the Bitlink MCP server over Streamable HTTP to list invoices, create payment links, and check payment status for the authenticated merchant.",
     "developerName": "Bitlink",

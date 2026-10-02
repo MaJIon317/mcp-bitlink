@@ -1,5 +1,5 @@
 {
-  "name": "bitlink-invoices",
+  "name": "bitlink",
   "version": "0.1.0",
   "description": "Create, list, and inspect Bitlink payment invoices from Cursor via MCP. Each request forwards the merchant Bearer token to the Bitlink REST API; the plugin never stores a shared API key.",
   "keywords": [

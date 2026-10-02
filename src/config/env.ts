@@ -7,7 +7,7 @@ const schema = z.object({
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     CRYPTO_API_BASE_URL: z.url().transform((value) => value.replace(/\/+$/, '')),
     CRYPTO_API_TIMEOUT_MS: z.coerce.number().int().positive().max(60_000).default(10_000),
-    MCP_SERVER_NAME: z.string().min(1).default('bitlink-invoices'),
+    MCP_SERVER_NAME: z.string().min(1).default('bitlink'),
     MCP_SERVER_VERSION: z.string().min(1).default('0.1.0'),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     /** CORS Access-Control-Allow-Origin. Use * for any origin (Codex/ChatGPT/browser clients). */

@@ -22,6 +22,15 @@ alone does not verify an active MCP connection.
 
 ## Optional plugin package
 
-`mcp.json` and `.mcp.json` declare the development Streamable HTTP endpoint.
+`mcp.json` declares the development Streamable HTTP endpoint; its authentication
+must be configured in the host. Portable remote headers are literal values,
+not environment-variable references.
+
+`.mcp.json` additionally sends `Authorization: Bearer ${BITLINK_API_TOKEN}`
+for clients that support expansion in HTTP headers. Supply the raw token in
+the client process environment and reconnect. This is a client-specific
+compatibility configuration, not a portable ChatGPT credential mechanism.
+The server's `.env` does not configure the ChatGPT connection.
+
 Manifests do not declare an App dependency. Direct MCP clients can connect
 without installing a plugin or skill.

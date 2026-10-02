@@ -1,12 +1,12 @@
 ---
-name: bitlink-invoices
+name: bitlink
 description: >
   Create, list, and inspect Bitlink payment invoices via the connected Bitlink
   MCP tools. Use when the user asks to create an invoice, check payment status,
   or list invoices.
 ---
 
-# Bitlink invoices
+# Bitlink
 
 ## Tools
 

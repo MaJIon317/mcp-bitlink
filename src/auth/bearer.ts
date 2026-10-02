@@ -5,7 +5,10 @@ export function extractBearerToken(request: Request): string | null {
         return null;
     }
 
-    const match = authorization.match(/^Bearer\s+(.+)$/i);
+    // Sanctum tokens are opaque (and can contain `|`), but cannot contain
+    // whitespace or unresolved configuration placeholders.
+    const match = authorization.match(/^Bearer +([^\s]+)$/i);
 
-    return match?.[1]?.trim() || null;
+    const token = match?.[1];
+    return token && !token.includes('${') ? token : null;
 }

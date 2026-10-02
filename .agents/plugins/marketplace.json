@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "bitlink-invoices",
+      "name": "bitlink",
       "source": {
         "source": "local",
         "path": "./"
