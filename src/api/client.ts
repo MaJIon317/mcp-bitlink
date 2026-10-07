@@ -79,18 +79,22 @@ export class ApiClient {
                 ...(body === undefined ? {} : { body: JSON.stringify(body) }),
             });
 
+            // Log the upstream status before parsing: gateways can return HTML errors.
+            if (!response.ok) {
+                this.logger.warn('API request failed', {
+                    method,
+                    origin: new URL(url).origin,
+                    path: new URL(url).pathname,
+                    status: response.status,
+                    contentType: response.headers.get('content-type'),
+                    requestId: response.headers.get('x-request-id'),
+                });
+            }
+
             const payload = await this.parseJson(response);
 
             if (!response.ok) {
                 const error = payload as ApiErrorBody | null;
-
-                this.logger.warn('API request failed', {
-                    method,
-                    path,
-                    status: response.status,
-                    code: error?.error?.code,
-                    message: error?.message,
-                });
 
                 throw new ApiError(
                     error?.message ?? `API returned HTTP ${response.status}`,
