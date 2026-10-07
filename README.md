@@ -1,7 +1,7 @@
 # Bitlink MCP
 
 Standard MCP server for the Bitlink payment API, using Streamable HTTP.
-An agent connects directly with a URL and a merchant Bearer token.
+An agent connects directly with a URL and a user Bearer token.
 No OpenAI App ID or plugin ID is required by the server or package.
 Plugin manifests and skills are optional client packaging.
 
@@ -9,82 +9,74 @@ Plugin manifests and skills are optional client packaging.
 
 | Tool | Purpose |
 |------|---------|
+| `get_me` | Authenticated user profile |
+| `list_merchants` | Accessible merchants with pagination |
+| `get_merchant` | Merchant details by ID |
 | `list_invoices` | Paginated invoice list with filters |
 | `create_invoice` | Create an invoice and return `paymentLink` |
 | `get_invoice` | Fetch one invoice by id |
+
+All invoice tools require `merchantId` and use `/v1/merchants/{merchant}/invoices`.
+The agent asks which merchant to use before the first invoice operation, remembers
+the choice in the conversation, and reuses it until the user asks to switch.
+The server is stateless: the agent sends the selected ID with each call; there is
+no shared merchant selection across users or conversations. A new conversation
+requires a new choice. Checkout and Webhook are outside this server’s scope.
 
 `whichWallet` accepts `new` or `user`.
 
 ## Connect an agent
 
-All connection addresses come from environment variables; no deployment URL
-is embedded in the source configuration.
+OAuth is enabled by default. The agent opens Bitlink's login and consent page,
+obtains a dedicated MCP token, and refreshes it automatically. Passwords and
+Bitlink access tokens are never passed to the model or embedded in client configs.
 
-Set in `.env` or the client process environment:
+Configure the public `BITLINK_MCP_URL`, Bitlink Passport client, exact agent callback
+URLs and persistent encryption key. See the complete
+[OAuth deployment and ChatGPT connection guide](docs/openai-plugin-connect.md).
+The backend must already expose Passport `/oauth/authorize` and `/oauth/token`.
 
-```dotenv
-BITLINK_MCP_URL=
-```
+`mcp.json`, `.mcp.json`, `cursor.mcp.json` and `.codex/config.toml.template` contain
+endpoint configuration only. Generate resolved configurations with:
 
-Supply the complete MCP endpoint in `BITLINK_MCP_URL`.
-Each user supplies their own raw merchant token in the client's authentication
-settings. There is no default or shared token in the server environment.
-The transport is Streamable HTTP.
-
-`mcp.json`, `.mcp.json`, and `cursor.mcp.json` are connection templates.
-Clients that support expansion can read the compatibility templates directly.
-For clients that expect literal URLs and headers, generate local configurations:
-
-```bash
+```sh
 npm run mcp:config
 ```
 
-The command reads `.env` and process environment (process values take priority),
-fails when the URL is missing, and writes `.local/`, which is ignored by Git.
-It only substitutes the URL: it never reads or embeds user tokens.
-Compatibility JSON files retain `${BITLINK_API_TOKEN}` for expansion by the
-user's client. Clients without that feature require user authentication settings.
-Portable `.local/mcp.json` contains the resolved endpoint; configure its Bearer
-credential in the host's connection settings. Portable Agent Plugins headers
-and URLs are literal and do not expand environment variables themselves.
-For Claude Code, use its native transport value `http` when importing a config.
-
-### Codex
-
-`.codex/config.toml.template` is a source template. The generator writes
-`.local/codex.toml` with the URL resolved from `BITLINK_MCP_URL` and
-`bearer_token_env_var = "BITLINK_API_TOKEN"`. Copy or merge this generated
-configuration into the client's active config. A local `.codex/config.toml`
-is ignored by Git. Each user sets their own `BITLINK_API_TOKEN` in the Codex process environment;
-Codex does not load this project's `.env` automatically.
-
-### Cursor
-
-Set plugin variables `BITLINK_MCP_URL` and `BITLINK_API_TOKEN` at installation,
-or import the generated `.local/cursor.mcp.json` into the client's settings.
-
-### ChatGPT
-
-See [connection notes](docs/openai-plugin-connect.md). The connection URL comes
-from `BITLINK_MCP_URL`; client account setup and credentials remain host-managed.
+Merge the generated endpoint into the client's settings and use its OAuth login.
+For Codex, the generated `.local/codex.toml` has no static Bearer token.
+The server's `.env` configures deployment; each user's OAuth authorization is
+managed by the host. Each invoice call still includes the selected `merchantId`.
 
 ## Run the server
 
-```bash
+Use Node.js 22.13 or later:
+
+```sh
 cp .env.example .env
 npm install
-npm run dev
+# Fill OAuth variables following the deployment guide.
+npm run build
+npm start
 ```
 
-Set `CRYPTO_API_BASE_URL` to the Bitlink REST API for your environment.
+Set `CRYPTO_API_BASE_URL` to the Bitlink REST API (`/api` or `/api/v1`).
 Default listen address: `0.0.0.0:3000`.
 
 - Health: `GET /health`
 - MCP endpoint: `/mcp`
-- Missing merchant token: `401` with `WWW-Authenticate`
+- OAuth resource discovery: `/.well-known/oauth-protected-resource/mcp`
+- OAuth issuer discovery: `/.well-known/oauth-authorization-server`
+- Login, callback, exchange and revoke: `/oauth/authorize`, `/oauth/callback`, `/oauth/token`, `/oauth/revoke`
+- Missing, expired or revoked MCP token: HTTP 401 with OAuth discovery challenge
+- Insufficient invoice permissions: HTTP 403 with required scope
 
-Merchant tokens are forwarded per request to the Bitlink REST API. No shared
-merchant API key is included in the package. Remote deployments should use HTTPS.
+Run one server process with a persistent encrypted SQLite store. Shared hosting
+with multiple workers needs distributed token-refresh coordination. See the
+[deployment guide](docs/openai-plugin-connect.md) for lifecycle and proxy setup.
+
+For migration only, explicitly select `AUTH_MODE=bearer` and configure a personal
+API key in the client. This mode has no OAuth login and is not the default.
 
 ## Optional plugin files
 
@@ -92,11 +84,11 @@ merchant API key is included in the package. Remote deployments should use HTTPS
 plugin.json                 # portable manifest and optional OpenAI listing metadata
 mcp.json                    # Streamable HTTP template; render before portable use
 .codex-plugin/plugin.json   # compatibility manifest
-.mcp.json                   # compatibility connection with client-expanded Bearer token
+.mcp.json                   # compatibility OAuth endpoint configuration
 .cursor-plugin/plugin.json  # Cursor packaging and variables
 cursor.mcp.json             # Cursor connection template
 skills/bitlink/             # optional workflow instructions
 ```
 
 There is no default endpoint. Set BITLINK_MCP_URL and configure authentication
-in the client; no merchant token is embedded in the source manifests.
+in the client; no user token is embedded in the source manifests.

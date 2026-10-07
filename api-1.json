@@ -1,0 +1,5063 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "API Documentation",
+    "version": "0.0.1",
+    "description": "DEVBitlink API\n\n### Standard API response format\n\nAll JSON API responses are wrapped in a common envelope.\n\nSuccessful responses:\n\n```json\n{\n  \"success\": true,\n  \"data\": {},\n  \"meta\": {\n    \"request_id\": \"uuid\",\n    \"timestamp\": \"2026-07-04T09:15:22Z\",\n    \"version\": \"1.0\",\n    \"processing_ms\": 25\n  }\n}\n```\n\nError responses:\n\n```json\n{\n  \"success\": false,\n  \"message\": \"Validation failed.\",\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\"\n  },\n  \"errors\": {},\n  \"meta\": {\n    \"request_id\": \"uuid\",\n    \"timestamp\": \"2026-07-04T09:15:22Z\",\n    \"version\": \"1.0\",\n    \"processing_ms\": 25\n  }\n}\n```\n\nPaginated responses put pagination details in `meta.pagination`."
+  },
+  "servers": [
+    {
+      "url": "https://dev.bitlink.ch/api/v1",
+      "description": "Production"
+    },
+    {
+      "url": "https://api.sandbox.bitlink.ch/v1",
+      "description": "Sandbox"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication"
+    },
+    {
+      "name": "Invoices"
+    },
+    {
+      "name": "Merchants"
+    },
+    {
+      "name": "Checkout Templates",
+      "description": "Templates define payment settings, customer fields, settlement method, UI/callback settings, and allowed payment methods. Use them to create checkout sessions."
+    },
+    {
+      "name": "Checkout Sessions",
+      "description": "Checkout sessions are payment attempts created from templates. Use initialize for API-only checkout, or create a session and open the hosted widget/page for hosted checkout."
+    },
+    {
+      "name": "Webhook Endpoints"
+    },
+    {
+      "name": "Webhook Events"
+    }
+  ],
+  "security": [
+    {
+      "http": []
+    }
+  ],
+  "paths": {
+    "/me": {
+      "get": {
+        "operationId": "v1.me",
+        "description": "Returns the currently authenticated user\nbased on the provided Passport access token.",
+        "summary": "Get authenticated user",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "`UserResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/UserResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}/checkout-templates/{checkoutTemplate}/checkout-sessions": {
+      "get": {
+        "operationId": "v1.checkout.sessions.index",
+        "description": "Returns paginated checkout sessions created from the given template. Use this for backend reconciliation and support tooling, not for high-frequency payment polling.",
+        "summary": "List checkout sessions",
+        "tags": [
+          "Checkout Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutTemplate",
+            "in": "path",
+            "required": true,
+            "description": "The checkout template ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 15
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `CheckoutSessionSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "pagination": {
+                          "current_page": 1,
+                          "per_page": 20,
+                          "last_page": 5,
+                          "total": 100
+                        },
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CheckoutSessionSummaryResource"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "current_page": {
+                              "type": "integer",
+                              "examples": [
+                                1
+                              ]
+                            },
+                            "per_page": {
+                              "type": "integer",
+                              "examples": [
+                                20
+                              ]
+                            },
+                            "last_page": {
+                              "type": "integer",
+                              "examples": [
+                                5
+                              ]
+                            },
+                            "total": {
+                              "type": "integer",
+                              "examples": [
+                                100
+                              ]
+                            }
+                          },
+                          "required": [
+                            "current_page",
+                            "per_page",
+                            "last_page",
+                            "total"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms",
+                        "pagination"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ],
+      "post": {
+        "operationId": "v1.checkout.sessions.store",
+        "description": "Creates a hosted checkout session. Put template source=api fields in source_values. Put optional customer defaults in prefill_values.",
+        "summary": "Create hosted checkout session",
+        "tags": [
+          "Checkout Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutTemplate",
+            "in": "path",
+            "required": true,
+            "description": "The checkout template ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutSessionCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`CheckoutSessionSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CheckoutSessionSummaryResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant}/checkout-templates/{checkoutTemplate}/checkout-sessions/initialize": {
+      "post": {
+        "operationId": "v1.checkout.sessions.initialize",
+        "description": "Creates and submits a checkout session. Put source=api fields in source_values and source=by_customer fields in collected_values.",
+        "summary": "Initialize the payment in one step.",
+        "tags": [
+          "Checkout Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutTemplate",
+            "in": "path",
+            "required": true,
+            "description": "The checkout template ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutSessionInitializeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`CheckoutPaymentInstructionsResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CheckoutPaymentInstructionsResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}/checkout-templates/{checkoutTemplate}/checkout-sessions/{checkoutSession}": {
+      "get": {
+        "operationId": "v1.checkout.sessions.show",
+        "description": "Returns a checkout session created from the given template. Use this for setup/inspection flows; use the lightweight status endpoint for polling payment progress.",
+        "summary": "Get checkout session",
+        "tags": [
+          "Checkout Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutTemplate",
+            "in": "path",
+            "required": true,
+            "description": "The checkout template ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutSession",
+            "in": "path",
+            "required": true,
+            "description": "The checkout session ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`CheckoutSessionResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CheckoutSessionResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}/checkout-sessions/{checkoutSession}/status": {
+      "get": {
+        "operationId": "v1.checkout.sessions.status",
+        "description": "Lightweight polling endpoint. It syncs blockchain/invoice state and returns only ids, statuses and payment amounts. It intentionally does not return QR code, wallet details, or full session/order payloads.",
+        "summary": "Get payment status",
+        "tags": [
+          "Checkout Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutSession",
+            "in": "path",
+            "required": true,
+            "description": "The checkout session ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`CheckoutPaymentStatusResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CheckoutPaymentStatusResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}/checkout-sessions/{checkoutSession}/submit": {
+      "post": {
+        "operationId": "v1.checkout.sessions.submit",
+        "description": "Submits customer values for an existing session. Put only source=by_customer fields in collected_values.",
+        "summary": "Submit checkout session",
+        "tags": [
+          "Checkout Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutSession",
+            "in": "path",
+            "required": true,
+            "description": "The checkout session ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CheckoutSessionSubmitRequest"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "collected_values": {
+                        "type": "object",
+                        "description": "Map of source=by_customer field keys to final customer values.",
+                        "examples": [
+                          {
+                            "payer.email": "customer@example.com"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`CheckoutPaymentInstructionsResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CheckoutPaymentInstructionsResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}/checkout-sessions/{checkoutSession}/retry": {
+      "post": {
+        "operationId": "v1.checkout.sessions.retry",
+        "description": "Creates a retry session when the original session is expired, cancelled, failed, or has a retryable overdue invoice. Use the returned session public_id for hosted checkout or submit it for API-only payment instructions.",
+        "summary": "Retry checkout session",
+        "tags": [
+          "Checkout Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutSession",
+            "in": "path",
+            "required": true,
+            "description": "The checkout session ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`CheckoutSessionSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CheckoutSessionSummaryResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}/checkout-templates": {
+      "get": {
+        "operationId": "v1.checkout.templates.index",
+        "description": "Returns paginated checkout templates for the merchant selected in the URL. Use this to find a template id/public_id before creating checkout sessions.",
+        "summary": "List checkout templates",
+        "tags": [
+          "Checkout Templates"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `CheckoutTemplateResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "pagination": {
+                          "current_page": 1,
+                          "per_page": 20,
+                          "last_page": 5,
+                          "total": 100
+                        },
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CheckoutTemplateResource"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "current_page": {
+                              "type": "integer",
+                              "examples": [
+                                1
+                              ]
+                            },
+                            "per_page": {
+                              "type": "integer",
+                              "examples": [
+                                20
+                              ]
+                            },
+                            "last_page": {
+                              "type": "integer",
+                              "examples": [
+                                5
+                              ]
+                            },
+                            "total": {
+                              "type": "integer",
+                              "examples": [
+                                100
+                              ]
+                            }
+                          },
+                          "required": [
+                            "current_page",
+                            "per_page",
+                            "last_page",
+                            "total"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms",
+                        "pagination"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ],
+      "post": {
+        "operationId": "v1.checkout.templates.store",
+        "description": "Creates a checkout template for the merchant selected in the URL. Mutating requests should include Idempotency-Key. The field_schema controls which values are supplied by API, predefined by the template, or collected from the customer.",
+        "summary": "Create checkout template",
+        "tags": [
+          "Checkout Templates"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`CheckoutTemplateResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CheckoutTemplateResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant}/checkout-templates/{checkoutTemplate}": {
+      "get": {
+        "operationId": "v1.checkout.templates.show",
+        "description": "Returns one checkout template. The path parameter accepts either the internal id or public_id of a template owned by the selected merchant.",
+        "summary": "Get checkout template",
+        "tags": [
+          "Checkout Templates"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutTemplate",
+            "in": "path",
+            "required": true,
+            "description": "Checkout template id or public_id.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ctplpub_xxxxxxxxxxxxxxxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`CheckoutTemplateResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CheckoutTemplateResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ],
+      "patch": {
+        "operationId": "v1.checkout.templates.update",
+        "description": "Partially updates checkout template settings. Use PATCH; PUT is intentionally not exposed to avoid duplicate API operations. Existing checkout sessions keep their template snapshot and are not changed retroactively.",
+        "summary": "Update checkout template",
+        "tags": [
+          "Checkout Templates"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutTemplate",
+            "in": "path",
+            "required": true,
+            "description": "Checkout template id or public_id.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ctplpub_xxxxxxxxxxxxxxxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`CheckoutTemplateStatusResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CheckoutTemplateStatusResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "v1.checkout.templates.destroy",
+        "description": "Archives the checkout template. The template must be disabled first; call deactivate before archive/delete. Use deactivate when you only need to stop creating new sessions, and archive/delete when the template should disappear from normal listings.",
+        "summary": "Archive checkout template",
+        "tags": [
+          "Checkout Templates"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutTemplate",
+            "in": "path",
+            "required": true,
+            "description": "Checkout template id or public_id.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ctplpub_xxxxxxxxxxxxxxxx"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Template archived. No response body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant}/checkout-templates/{checkoutTemplate}/activate": {
+      "post": {
+        "operationId": "v1.checkout.templates.activate",
+        "description": "Switches the template to active status. Only active templates can create new checkout sessions.",
+        "summary": "Activate checkout template",
+        "tags": [
+          "Checkout Templates"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutTemplate",
+            "in": "path",
+            "required": true,
+            "description": "Checkout template id or public_id.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ctplpub_xxxxxxxxxxxxxxxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`CheckoutTemplateStatusResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CheckoutTemplateStatusResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}/checkout-templates/{checkoutTemplate}/deactivate": {
+      "post": {
+        "operationId": "v1.checkout.templates.deactivate",
+        "description": "Switches the template to disabled status. Disabled templates cannot create new checkout sessions. Existing sessions keep working according to their own state.",
+        "summary": "Deactivate checkout template",
+        "tags": [
+          "Checkout Templates"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkoutTemplate",
+            "in": "path",
+            "required": true,
+            "description": "Checkout template id or public_id.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ctplpub_xxxxxxxxxxxxxxxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`CheckoutTemplateResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CheckoutTemplateResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}/invoices": {
+      "get": {
+        "operationId": "v1.merchants.invoices.index",
+        "description": "Returns a paginated list of invoices belonging to the selected merchant.",
+        "summary": "List invoices",
+        "tags": [
+          "Invoices"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "sort_by",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "amount",
+                "amount_paid"
+              ]
+            }
+          },
+          {
+            "name": "sort_direction",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/InvoiceStatusEnum"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 3
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `InvoiceResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "pagination": {
+                          "current_page": 1,
+                          "per_page": 20,
+                          "last_page": 5,
+                          "total": 100
+                        },
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/InvoiceResource"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "current_page": {
+                              "type": "integer",
+                              "examples": [
+                                1
+                              ]
+                            },
+                            "per_page": {
+                              "type": "integer",
+                              "examples": [
+                                20
+                              ]
+                            },
+                            "last_page": {
+                              "type": "integer",
+                              "examples": [
+                                5
+                              ]
+                            },
+                            "total": {
+                              "type": "integer",
+                              "examples": [
+                                100
+                              ]
+                            }
+                          },
+                          "required": [
+                            "current_page",
+                            "per_page",
+                            "last_page",
+                            "total"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms",
+                        "pagination"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ],
+      "post": {
+        "operationId": "v1.merchants.invoices.store",
+        "description": "Creates a new invoice for the selected merchant.",
+        "summary": "Create invoice",
+        "tags": [
+          "Invoices"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceStoreRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`InvoiceResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/InvoiceResource"
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "currency",
+                            "country"
+                          ]
+                        }
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant}/invoices/{invoice}": {
+      "get": {
+        "operationId": "v1.merchants.invoices.show",
+        "description": "Returns a single invoice belonging to the selected merchant.",
+        "summary": "Get invoice",
+        "tags": [
+          "Invoices"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invoice",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`InvoiceResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/InvoiceResource"
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "currency",
+                            "country"
+                          ]
+                        }
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants": {
+      "get": {
+        "operationId": "merchant.index",
+        "description": "Returns a paginated list of merchants associated with the authenticated user.",
+        "summary": "List merchants",
+        "tags": [
+          "Merchants"
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `MerchantResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "pagination": {
+                          "current_page": 1,
+                          "per_page": 20,
+                          "last_page": 5,
+                          "total": 100
+                        },
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MerchantResource"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "current_page": {
+                              "type": "integer",
+                              "examples": [
+                                1
+                              ]
+                            },
+                            "per_page": {
+                              "type": "integer",
+                              "examples": [
+                                20
+                              ]
+                            },
+                            "last_page": {
+                              "type": "integer",
+                              "examples": [
+                                5
+                              ]
+                            },
+                            "total": {
+                              "type": "integer",
+                              "examples": [
+                                100
+                              ]
+                            }
+                          },
+                          "required": [
+                            "current_page",
+                            "per_page",
+                            "last_page",
+                            "total"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms",
+                        "pagination"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}": {
+      "get": {
+        "operationId": "merchant.show",
+        "description": "Returns a merchant associated with the authenticated user.",
+        "summary": "Get merchant",
+        "tags": [
+          "Merchants"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`MerchantResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MerchantResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}/webhook-endpoints": {
+      "post": {
+        "operationId": "webhookEndpoint.store",
+        "summary": "Create webhook endpoint",
+        "tags": [
+          "Webhook Endpoints"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookEndpointStoreRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`WebhookEndpointResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/WebhookEndpointResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}/webhook-endpoints/{webhookEndpoint}": {
+      "patch": {
+        "operationId": "webhookEndpoint.update",
+        "summary": "Update webhook endpoint",
+        "tags": [
+          "Webhook Endpoints"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "webhookEndpoint",
+            "in": "path",
+            "required": true,
+            "description": "The webhook endpoint ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookEndpointUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`WebhookEndpointResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/WebhookEndpointResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}/webhook-endpoints/{webhookEndpoint}/rotate-secret": {
+      "post": {
+        "operationId": "webhookEndpoint.rotateSecret",
+        "summary": "Rotate endpoint signing secret",
+        "tags": [
+          "Webhook Endpoints"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "webhookEndpoint",
+            "in": "path",
+            "required": true,
+            "description": "The webhook endpoint ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`WebhookEndpointResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/WebhookEndpointResource"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    },
+    "/merchants/{merchant}/webhook-events/{webhookEvent}/replay": {
+      "post": {
+        "operationId": "webhookEvent.replay",
+        "summary": "Replay webhook event",
+        "tags": [
+          "Webhook Events"
+        ],
+        "parameters": [
+          {
+            "name": "merchant",
+            "in": "path",
+            "required": true,
+            "description": "The merchant ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "webhookEvent",
+            "in": "path",
+            "required": true,
+            "description": "The webhook event ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`WebhookEventResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "success": true,
+                      "data": {},
+                      "meta": {
+                        "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+                        "timestamp": "2026-07-04T09:15:22Z",
+                        "version": "1.0",
+                        "processing_ms": 25
+                      }
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "examples": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/WebhookEventResource"
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "deliveries"
+                          ]
+                        }
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "request_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "examples": [
+                            "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time",
+                          "examples": [
+                            "2026-07-04T09:15:22Z"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "examples": [
+                            "1.0"
+                          ]
+                        },
+                        "processing_ms": {
+                          "type": "integer",
+                          "examples": [
+                            25
+                          ]
+                        }
+                      },
+                      "required": [
+                        "request_id",
+                        "timestamp",
+                        "version",
+                        "processing_ms"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "https://dev.bitlink.ch/api/v1",
+          "description": "Production"
+        }
+      ]
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "http": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "VALIDATION_ERROR",
+              "UNAUTHENTICATED",
+              "FORBIDDEN",
+              "NOT_FOUND",
+              "CONFLICT",
+              "TOO_MANY_REQUESTS",
+              "INTERNAL_SERVER_ERROR",
+              "SERVICE_UNAVAILABLE"
+            ],
+            "examples": [
+              "VALIDATION_ERROR"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "ApiError"
+      },
+      "ApiErrorResponse": {
+        "type": "object",
+        "examples": [
+          {
+            "success": false,
+            "message": "Validation failed.",
+            "error": {
+              "code": "VALIDATION_ERROR"
+            },
+            "errors": {
+              "email": [
+                "The email field is required."
+              ]
+            },
+            "meta": {
+              "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+              "timestamp": "2026-07-04T09:15:22Z",
+              "version": "1.0",
+              "processing_ms": 25
+            }
+          }
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "examples": [
+              false
+            ]
+          },
+          "message": {
+            "type": "string",
+            "examples": [
+              "Validation failed."
+            ]
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "UNAUTHENTICATED",
+                  "FORBIDDEN",
+                  "NOT_FOUND",
+                  "CONFLICT",
+                  "TOO_MANY_REQUESTS",
+                  "INTERNAL_SERVER_ERROR",
+                  "SERVICE_UNAVAILABLE"
+                ],
+                "examples": [
+                  "VALIDATION_ERROR"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "request_id": {
+                "type": "string",
+                "format": "uuid",
+                "examples": [
+                  "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "examples": [
+                  "2026-07-04T09:15:22Z"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "examples": [
+                  "1.0"
+                ]
+              },
+              "processing_ms": {
+                "type": "integer",
+                "examples": [
+                  25
+                ]
+              }
+            },
+            "required": [
+              "request_id",
+              "timestamp",
+              "version",
+              "processing_ms"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "error",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiErrorResponse"
+      },
+      "ApiMeta": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "examples": [
+              "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+            ]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2026-07-04T09:15:22Z"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "examples": [
+              "1.0"
+            ]
+          },
+          "processing_ms": {
+            "type": "integer",
+            "examples": [
+              25
+            ]
+          }
+        },
+        "required": [
+          "request_id",
+          "timestamp",
+          "version",
+          "processing_ms"
+        ],
+        "title": "ApiMeta"
+      },
+      "ApiPaginatedResponse": {
+        "type": "object",
+        "examples": [
+          {
+            "success": true,
+            "data": {},
+            "meta": {
+              "pagination": {
+                "current_page": 1,
+                "per_page": 20,
+                "last_page": 5,
+                "total": 100
+              },
+              "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+              "timestamp": "2026-07-04T09:15:22Z",
+              "version": "1.0",
+              "processing_ms": 25
+            }
+          }
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true,
+            "examples": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "request_id": {
+                "type": "string",
+                "format": "uuid",
+                "examples": [
+                  "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "examples": [
+                  "2026-07-04T09:15:22Z"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "examples": [
+                  "1.0"
+                ]
+              },
+              "processing_ms": {
+                "type": "integer",
+                "examples": [
+                  25
+                ]
+              },
+              "pagination": {
+                "type": "object",
+                "properties": {
+                  "current_page": {
+                    "type": "integer",
+                    "examples": [
+                      1
+                    ]
+                  },
+                  "per_page": {
+                    "type": "integer",
+                    "examples": [
+                      20
+                    ]
+                  },
+                  "last_page": {
+                    "type": "integer",
+                    "examples": [
+                      5
+                    ]
+                  },
+                  "total": {
+                    "type": "integer",
+                    "examples": [
+                      100
+                    ]
+                  }
+                },
+                "required": [
+                  "current_page",
+                  "per_page",
+                  "last_page",
+                  "total"
+                ]
+              }
+            },
+            "required": [
+              "request_id",
+              "timestamp",
+              "version",
+              "processing_ms",
+              "pagination"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "title": "ApiPaginatedResponse"
+      },
+      "ApiPaginationMeta": {
+        "type": "object",
+        "properties": {
+          "current_page": {
+            "type": "integer",
+            "examples": [
+              1
+            ]
+          },
+          "per_page": {
+            "type": "integer",
+            "examples": [
+              20
+            ]
+          },
+          "last_page": {
+            "type": "integer",
+            "examples": [
+              5
+            ]
+          },
+          "total": {
+            "type": "integer",
+            "examples": [
+              100
+            ]
+          }
+        },
+        "required": [
+          "current_page",
+          "per_page",
+          "last_page",
+          "total"
+        ],
+        "title": "ApiPaginationMeta"
+      },
+      "ApiSuccessResponse": {
+        "type": "object",
+        "examples": [
+          {
+            "success": true,
+            "data": {},
+            "meta": {
+              "request_id": "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad",
+              "timestamp": "2026-07-04T09:15:22Z",
+              "version": "1.0",
+              "processing_ms": 25
+            }
+          }
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true,
+            "examples": [
+              true
+            ]
+          },
+          "data": {},
+          "meta": {
+            "type": "object",
+            "properties": {
+              "request_id": {
+                "type": "string",
+                "format": "uuid",
+                "examples": [
+                  "018f5d0f-6a4a-77df-9c54-30d6cc56e2ad"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "examples": [
+                  "2026-07-04T09:15:22Z"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "examples": [
+                  "1.0"
+                ]
+              },
+              "processing_ms": {
+                "type": "integer",
+                "examples": [
+                  25
+                ]
+              }
+            },
+            "required": [
+              "request_id",
+              "timestamp",
+              "version",
+              "processing_ms"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "title": "ApiSuccessResponse"
+      },
+      "ApiValidationErrors": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "title": "ApiValidationErrors"
+      },
+      "CheckoutPaymentInstructionsResource": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string"
+          },
+          "payment_order_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "payment_address": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "remaining_amount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "remaining_amount_formatted": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "qr_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "session_id",
+          "payment_order_id",
+          "payment_address",
+          "remaining_amount",
+          "remaining_amount_formatted",
+          "qr_code"
+        ],
+        "title": "CheckoutPaymentInstructionsResource"
+      },
+      "CheckoutPaymentStatusResource": {
+        "type": "array",
+        "items": {},
+        "title": "CheckoutPaymentStatusResource"
+      },
+      "CheckoutSessionCreateRequest": {
+        "type": "object",
+        "properties": {
+          "external_order_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "client_reference_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "source_values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "prefill_values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ui_context": {
+            "type": "object",
+            "properties": {
+              "mode": {
+                "$ref": "#/components/schemas/UiModeEnum"
+              },
+              "theme": {
+                "$ref": "#/components/schemas/UiThemeEnum"
+              },
+              "locale": {
+                "type": "string",
+                "enum": [
+                  "en"
+                ]
+              }
+            }
+          },
+          "selected_payment_method_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The payment method codes available in the template settings. Example: USDT.TRON.TRC20",
+            "maxLength": 80
+          }
+        },
+        "title": "CheckoutSessionCreateRequest"
+      },
+      "CheckoutSessionInitializeRequest": {
+        "type": "object",
+        "properties": {
+          "external_order_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "client_reference_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "source_values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "prefill_values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ui_context": {
+            "type": "object",
+            "properties": {
+              "mode": {
+                "$ref": "#/components/schemas/UiModeEnum"
+              },
+              "theme": {
+                "$ref": "#/components/schemas/UiThemeEnum"
+              },
+              "locale": {
+                "type": "string",
+                "enum": [
+                  "en"
+                ]
+              }
+            }
+          },
+          "selected_payment_method_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The payment method codes available in the template settings. Example: USDT.TRON.TRC20",
+            "maxLength": 80
+          },
+          "collected_values": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "title": "CheckoutSessionInitializeRequest"
+      },
+      "CheckoutSessionResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "public_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "payment_order_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "external_order_id": {
+            "type": "string"
+          },
+          "client_reference_id": {
+            "type": "string"
+          },
+          "selected_payment_method_code": {
+            "type": "string"
+          },
+          "selected_payment_method": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "available_payment_methods": {
+            "type": "array",
+            "items": {}
+          },
+          "customer_fields": {
+            "type": "array",
+            "items": {}
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "status",
+          "payment_order_id",
+          "external_order_id",
+          "client_reference_id",
+          "selected_payment_method_code",
+          "selected_payment_method",
+          "available_payment_methods",
+          "customer_fields",
+          "expires_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CheckoutSessionResource"
+      },
+      "CheckoutSessionSubmitRequest": {
+        "type": "object",
+        "properties": {
+          "collected_values": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "selected_payment_method_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 80
+          }
+        },
+        "title": "CheckoutSessionSubmitRequest"
+      },
+      "CheckoutSessionSummaryResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "public_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "payment_order_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "external_order_id": {
+            "type": "string"
+          },
+          "client_reference_id": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "status",
+          "payment_order_id",
+          "external_order_id",
+          "client_reference_id",
+          "expires_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CheckoutSessionSummaryResource"
+      },
+      "CheckoutTemplateResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "public_id": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "settlement_method_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "field_schema": {
+            "type": "string"
+          },
+          "payment_methods": {
+            "type": "string"
+          },
+          "ui_config": {
+            "type": "string"
+          },
+          "callback_config": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "merchant_id",
+          "settlement_method_id",
+          "name",
+          "status",
+          "version",
+          "field_schema",
+          "payment_methods",
+          "ui_config",
+          "callback_config",
+          "metadata",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CheckoutTemplateResource"
+      },
+      "CheckoutTemplateStatusResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "public_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "status"
+        ],
+        "title": "CheckoutTemplateStatusResource"
+      },
+      "InvoiceResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InvoiceStatusEnum"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "amount_paid": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "object": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "address": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "payment_link": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "amount",
+          "amount_paid",
+          "object",
+          "name",
+          "email",
+          "address",
+          "payment_link",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "InvoiceResource"
+      },
+      "InvoiceStatusEnum": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "pending_paid",
+          "complete",
+          "partially_overdue",
+          "expired"
+        ],
+        "title": "InvoiceStatusEnum"
+      },
+      "InvoiceStoreRequest": {
+        "type": "object",
+        "properties": {
+          "which_wallet": {
+            "$ref": "#/components/schemas/InvoiceWhichWalletEnum"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 1
+          },
+          "currency": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "address": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "which_wallet",
+          "amount",
+          "currency",
+          "name",
+          "country"
+        ],
+        "title": "InvoiceStoreRequest"
+      },
+      "InvoiceWhichWalletEnum": {
+        "type": "string",
+        "enum": [
+          "new",
+          "user"
+        ],
+        "title": "InvoiceWhichWalletEnum"
+      },
+      "MerchantResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "post_code": {
+            "type": "string"
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verification_status": {
+            "type": "string"
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_owner": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "address",
+          "city",
+          "post_code",
+          "country",
+          "verification_status",
+          "role",
+          "is_owner"
+        ],
+        "title": "MerchantResource"
+      },
+      "UiModeEnum": {
+        "type": "string",
+        "enum": [
+          "modal",
+          "redirect"
+        ],
+        "title": "UiModeEnum"
+      },
+      "UiThemeEnum": {
+        "type": "string",
+        "enum": [
+          "system",
+          "light",
+          "dark"
+        ],
+        "title": "UiThemeEnum"
+      },
+      "UserResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name"
+        ],
+        "title": "UserResource"
+      },
+      "WebhookDeliveryResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "webhook_endpoint_id": {
+            "type": "string"
+          },
+          "webhook_event_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "attempt": {
+            "type": "string"
+          },
+          "next_attempt_at": {
+            "type": "string"
+          },
+          "delivered_at": {
+            "type": "string"
+          },
+          "response_status": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "webhook_endpoint_id",
+          "webhook_event_id",
+          "status",
+          "attempt",
+          "next_attempt_at",
+          "delivered_at",
+          "response_status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "WebhookDeliveryResource"
+      },
+      "WebhookEndpointResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "event_types": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 0,
+                "maxItems": 0,
+                "additionalItems": false
+              }
+            ]
+          },
+          "secret": {
+            "type": "string"
+          },
+          "secret_prefix": {
+            "type": "string"
+          },
+          "secret_last4": {
+            "type": "string"
+          },
+          "last_success_at": {
+            "type": "string"
+          },
+          "last_failure_at": {
+            "type": "string"
+          },
+          "failure_count": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "merchant_id",
+          "url",
+          "status",
+          "event_types",
+          "secret_prefix",
+          "secret_last4",
+          "last_success_at",
+          "last_failure_at",
+          "failure_count",
+          "metadata",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "WebhookEndpointResource"
+      },
+      "WebhookEndpointStatusEnum": {
+        "type": "string",
+        "enum": [
+          "active",
+          "failing",
+          "disabled"
+        ],
+        "title": "WebhookEndpointStatusEnum"
+      },
+      "WebhookEndpointStoreRequest": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048
+          },
+          "event_types": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "checkout_session.created",
+                "checkout_session.expired",
+                "payment_order.created",
+                "payment_order.completed",
+                "payment_order.expired",
+                "payment_order.failed"
+              ]
+            }
+          },
+          "metadata": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "WebhookEndpointStoreRequest"
+      },
+      "WebhookEndpointUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048
+          },
+          "status": {
+            "$ref": "#/components/schemas/WebhookEndpointStatusEnum"
+          },
+          "event_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "checkout_session.created",
+                "checkout_session.expired",
+                "payment_order.created",
+                "payment_order.completed",
+                "payment_order.expired",
+                "payment_order.failed"
+              ]
+            }
+          },
+          "metadata": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "title": "WebhookEndpointUpdateRequest"
+      },
+      "WebhookEventResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "resource_type": {
+            "type": "string"
+          },
+          "resource_id": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "string"
+          },
+          "deliveries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookDeliveryResource"
+            }
+          },
+          "published_at": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "merchant_id",
+          "type",
+          "resource_type",
+          "resource_id",
+          "payload",
+          "published_at",
+          "created_at"
+        ],
+        "title": "WebhookEventResource"
+      }
+    },
+    "responses": {
+      "AuthenticationException": {
+        "description": "Unauthenticated",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "description": "Error overview."
+                }
+              },
+              "required": [
+                "message"
+              ]
+            }
+          }
+        }
+      },
+      "ModelNotFoundException": {
+        "description": "Not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "description": "Error overview."
+                }
+              },
+              "required": [
+                "message"
+              ]
+            }
+          }
+        }
+      },
+      "ValidationException": {
+        "description": "Validation error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "description": "Errors overview."
+                },
+                "errors": {
+                  "type": "object",
+                  "description": "A detailed description of each field that failed validation.",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "required": [
+                "message",
+                "errors"
+              ]
+            }
+          }
+        }
+      },
+      "AuthorizationException": {
+        "description": "Authorization error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "description": "Error overview."
+                }
+              },
+              "required": [
+                "message"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

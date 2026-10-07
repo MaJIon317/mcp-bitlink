@@ -1,3 +1,5 @@
+import { MerchantsApi } from '../api/resources/merchants.js';
+import { merchantInstructions, registerMerchantTools } from '../tools/merchants.js';
 import { McpServer } from '@modelcontextprotocol/server';
 import { env } from '../config/env.js';
 import { ApiClient } from '../api/client.js';
@@ -42,12 +44,14 @@ export function createServer(
             version: env.MCP_SERVER_VERSION,
         },
         {
+            instructions: merchantInstructions,
             capabilities: {
                 tools: {},
             },
         },
     );
 
+    registerMerchantTools(server, new MerchantsApi(apiClient), logger);
     registerListInvoicesTool(server, invoices, logger);
     registerCreateInvoiceTool(server, invoices, logger);
     registerGetInvoiceTool(server, invoices, logger);

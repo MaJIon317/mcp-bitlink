@@ -30,7 +30,12 @@ export const whichWalletSchema = z
             'Do not ask the end user to type which_wallet, new, or user.',
     );
 
+export const merchantIdSchema = z.string().trim().min(1).max(128).describe(
+    'Merchant chosen by the user for this conversation. Ask once before the first invoice operation; reuse it until the user asks to switch. Never guess or choose the first merchant automatically.',
+);
+
 export const createInvoiceInputSchema = z.object({
+    merchantId: merchantIdSchema,
     whichWallet: whichWalletSchema,
     amount: amountSchema,
     currency: currencyCodeSchema,
@@ -48,10 +53,12 @@ export const createInvoiceInputSchema = z.object({
 });
 
 export const getInvoiceInputSchema = z.object({
+    merchantId: merchantIdSchema,
     invoiceId: invoiceIdSchema,
 });
 
 export const listInvoicesInputSchema = z.object({
+    merchantId: merchantIdSchema,
     page: z.number().int().min(1).optional(),
     perPage: z.number().int().min(1).max(100).optional(),
     from: z.iso.date().optional(),

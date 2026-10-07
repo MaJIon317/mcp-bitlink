@@ -117,10 +117,10 @@ export class InvoicesApi {
     ) {}
 
     public async list(
-        input: ListInvoicesInput = {},
+        input: ListInvoicesInput,
     ): Promise<InvoiceList> {
         const response = await this.client.get<InvoiceListResponse>(
-            '/v1/invoices',
+            `/v1/merchants/${encodeURIComponent(input.merchantId)}/invoices`,
             {
                 page: input.page,
                 per_page: input.perPage,
@@ -146,7 +146,7 @@ export class InvoicesApi {
         input: CreateInvoiceInput,
     ): Promise<Invoice> {
         const response = await this.client.post<ApiResponse<ApiInvoice>>(
-            '/v1/invoices',
+            `/v1/merchants/${encodeURIComponent(input.merchantId)}/invoices`,
             {
                 which_wallet: input.whichWallet,
                 amount: input.amount,
@@ -163,10 +163,11 @@ export class InvoicesApi {
     }
 
     public async get(
+        merchantId: string,
         invoiceId: string,
     ): Promise<Invoice> {
         const response = await this.client.get<ApiResponse<ApiInvoice>>(
-            `/v1/invoices/${encodeURIComponent(invoiceId)}`,
+            `/v1/merchants/${encodeURIComponent(merchantId)}/invoices/${encodeURIComponent(invoiceId)}`,
         );
 
         return mapInvoice(response.data);

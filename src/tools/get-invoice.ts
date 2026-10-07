@@ -15,13 +15,15 @@ export function registerGetInvoiceTool(
         'get_invoice',
         {
             description:
-                'Get an invoice owned by the authenticated merchant, including its current payment status.',
+                'Use the merchant selected in this conversation. If none is selected, list merchants and ask the user once; reuse the choice until the user explicitly switches. ' +
+                'Get an invoice owned by the merchant selected by the user, including its current payment status.',
+            _meta: { securitySchemes: [{ type: 'oauth2', scopes: ['invoices.read'] }] },
             inputSchema: getInvoiceInputSchema,
         },
-        async ({ invoiceId }) => {
+        async ({ merchantId, invoiceId }) => {
             try {
                 toolLogger.debug('Fetching invoice', { invoiceId });
-                return successResult(await invoices.get(invoiceId));
+                return successResult(await invoices.get(merchantId, invoiceId));
             } catch (error) {
                 return errorResult(toolLogger, error, { invoiceId });
             }

@@ -73,6 +73,7 @@ describe('InvoicesApi', () => {
         const invoices = new InvoicesApi(client);
 
         const result = await invoices.list({
+            merchantId: 'merchant_1',
             page: 1,
             perPage: 15,
             status: 'pending',
@@ -97,7 +98,7 @@ describe('InvoicesApi', () => {
         });
 
         expect(fetchMock).toHaveBeenCalledWith(
-            'https://api.example.test/api/v1/invoices?page=1&per_page=15&sort_by=created_at&sort_direction=desc&status=pending&currency=EUR&country=DEU',
+            'https://api.example.test/api/v1/merchants/merchant_1/invoices?page=1&per_page=15&sort_by=created_at&sort_direction=desc&status=pending&currency=EUR&country=DEU',
             expect.objectContaining({
                 method: 'GET',
                 headers: expect.objectContaining({
@@ -114,8 +115,8 @@ describe('InvoicesApi', () => {
                     successEnvelope({
                         data: [invoicePayload()],
                         links: {
-                            first: 'https://api.example.test/api/v1/invoices?page=1',
-                            last: 'https://api.example.test/api/v1/invoices?page=1',
+                            first: 'https://api.example.test/api/v1/merchants/merchant_1/invoices?page=1',
+                            last: 'https://api.example.test/api/v1/merchants/merchant_1/invoices?page=1',
                             prev: null,
                             next: null,
                         },
@@ -124,7 +125,7 @@ describe('InvoicesApi', () => {
                             from: 16,
                             last_page: 3,
                             links: [],
-                            path: 'https://api.example.test/api/v1/invoices',
+                            path: 'https://api.example.test/api/v1/merchants/merchant_1/invoices',
                             per_page: 15,
                             to: 30,
                             total: 40,
@@ -146,7 +147,7 @@ describe('InvoicesApi', () => {
             }),
         );
 
-        const result = await invoices.list();
+        const result = await invoices.list({ merchantId: 'merchant_1' });
 
         expect(result.invoices).toHaveLength(1);
         expect(result.pagination).toEqual({
@@ -178,7 +179,7 @@ describe('InvoicesApi', () => {
             }),
         );
 
-        await expect(invoices.list()).rejects.toBeInstanceOf(
+        await expect(invoices.list({ merchantId: 'merchant_1' })).rejects.toBeInstanceOf(
             UnexpectedResponseError,
         );
     });
@@ -200,6 +201,7 @@ describe('InvoicesApi', () => {
         );
 
         await invoices.create({
+            merchantId: 'merchant_1',
             whichWallet: 'user',
             amount: 50,
             currency: 'USD',
@@ -208,7 +210,7 @@ describe('InvoicesApi', () => {
         });
 
         expect(fetchMock).toHaveBeenCalledWith(
-            'https://api.example.test/api/v1/invoices',
+            'https://api.example.test/api/v1/merchants/merchant_1/invoices',
             expect.objectContaining({
                 body: JSON.stringify({
                     which_wallet: 'user',
@@ -238,6 +240,7 @@ describe('InvoicesApi', () => {
         const invoices = new InvoicesApi(client);
 
         const invoice = await invoices.create({
+            merchantId: 'merchant_1',
             whichWallet: 'new',
             amount: 100,
             currency: 'EUR',
@@ -252,7 +255,7 @@ describe('InvoicesApi', () => {
         expect(invoice.paymentLink).toBe('https://pay.example.test/i/inv_1');
 
         expect(fetchMock).toHaveBeenCalledWith(
-            'https://api.example.test/api/v1/invoices',
+            'https://api.example.test/api/v1/merchants/merchant_1/invoices',
             expect.objectContaining({
                 method: 'POST',
                 headers: expect.objectContaining({
@@ -269,6 +272,21 @@ describe('InvoicesApi', () => {
                 }),
             }),
         );
+    });
+
+    it('uses each explicitly selected merchant and encodes its ID', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+            new Response(JSON.stringify(successEnvelope([]))),
+        );
+        const invoices = new InvoicesApi(new ApiClient({
+            baseUrl: 'https://api.example.test/api/v1', accessToken: 'user-token', timeoutMs: 1000,
+        }));
+        await invoices.list({ merchantId: 'merchant/a' });
+        await invoices.list({ merchantId: 'merchant_b' });
+        expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+            'https://api.example.test/api/v1/merchants/merchant%2Fa/invoices',
+            'https://api.example.test/api/v1/merchants/merchant_b/invoices',
+        ]);
     });
 
     it('gets invoice by id', async () => {
@@ -289,11 +307,11 @@ describe('InvoicesApi', () => {
         });
 
         const invoices = new InvoicesApi(client);
-        const invoice = await invoices.get('inv_1');
+        const invoice = await invoices.get('merchant_1', 'inv_1');
 
         expect(invoice.status).toBe('complete');
         expect(fetchMock).toHaveBeenCalledWith(
-            'https://api.example.test/api/v1/invoices/inv_1',
+            'https://api.example.test/api/v1/merchants/merchant_1/invoices/inv_1',
             expect.objectContaining({
                 method: 'GET',
             }),

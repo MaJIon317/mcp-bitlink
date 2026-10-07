@@ -4,6 +4,7 @@ import { createInvoiceInputSchema } from '../../src/schemas/invoice.js';
 describe('createInvoiceInputSchema', () => {
     it('normalizes currency/country and accepts empty optional email', () => {
         const parsed = createInvoiceInputSchema.parse({
+            merchantId: 'merchant_1',
             whichWallet: 'new',
             amount: 100,
             currency: ' usd ',
@@ -14,6 +15,7 @@ describe('createInvoiceInputSchema', () => {
         });
 
         expect(parsed).toEqual({
+            merchantId: 'merchant_1',
             whichWallet: 'new',
             amount: 100,
             currency: 'USD',
@@ -24,6 +26,7 @@ describe('createInvoiceInputSchema', () => {
 
     it('accepts a real email and whichWallet=user', () => {
         const parsed = createInvoiceInputSchema.parse({
+            merchantId: 'merchant_1',
             whichWallet: 'user',
             amount: 50,
             currency: 'EUR',

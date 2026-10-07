@@ -15,7 +15,9 @@ export function registerListInvoicesTool(
         'list_invoices',
         {
             description:
-                'List invoices owned by the authenticated merchant. Supports filtering, sorting and pagination.',
+                'Use the merchant selected in this conversation. If none is selected, list merchants and ask the user once; reuse the choice until the user explicitly switches. ' +
+                'List invoices owned by the merchant selected by the user. Supports filtering, sorting and pagination.',
+            _meta: { securitySchemes: [{ type: 'oauth2', scopes: ['invoices.read'] }] },
             inputSchema: listInvoicesInputSchema,
         },
         async (input) => {

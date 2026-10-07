@@ -5,8 +5,8 @@ export function extractBearerToken(request: Request): string | null {
         return null;
     }
 
-    // Sanctum tokens are opaque (and can contain `|`), but cannot contain
-    // whitespace or unresolved configuration placeholders.
+    // Bearer is the transport for OAuth access tokens and optional legacy API keys.
+    // Reject whitespace and unresolved configuration placeholders.
     const match = authorization.match(/^Bearer +([^\s]+)$/i);
 
     const token = match?.[1];

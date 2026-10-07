@@ -1,3 +1,4 @@
+import { env } from '../config/env.js';
 import {
     ApiError,
     ApiNetworkError,
@@ -37,11 +38,11 @@ export function publicErrorMessage(error: unknown): string {
         }
 
         if (error.status === 401) {
-            return 'Authentication failed. Check the merchant API token.';
+            return 'Authentication failed. Reconnect your Bitlink account.';
         }
 
         if (error.status === 403) {
-            return 'Access denied for this merchant token.';
+            return 'Access denied for this account or merchant.';
         }
 
         if (error.status === 404) {
@@ -107,6 +108,10 @@ export function errorResult(
 
     return {
         isError: true,
+        ...(error instanceof ApiError && error.status === 401 && env.AUTH_MODE === 'oauth' && env.BITLINK_MCP_URL
+            ? { _meta: { 'mcp/www_authenticate': [
+                `Bearer resource_metadata="${new URL('/.well-known/oauth-protected-resource/mcp', env.BITLINK_MCP_URL).href}", error="invalid_token", error_description="Please reconnect your Bitlink account"`,
+            ] } } : {}),
         content: [
             {
                 type: 'text' as const,

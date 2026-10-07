@@ -26,6 +26,7 @@ describe('HTTP Bearer authentication', () => {
         });
         vi.stubEnv('CRYPTO_API_BASE_URL', await listen(api));
         vi.stubEnv('LOG_LEVEL', 'error');
+        vi.stubEnv('AUTH_MODE', 'bearer');
         const { createHttpServer } = await import('../../src/http.js');
         mcp = createHttpServer();
         url = `${await listen(mcp)}/mcp`;
@@ -81,19 +82,26 @@ describe('HTTP Bearer authentication', () => {
         }));
         expect(initialized.result.serverInfo.name).toBeTruthy();
         const result = await payload(await rpc('tools/list', '123|merchant-token'));
-        expect(result.result.tools.map((tool: { name: string }) => tool.name).sort()).toEqual(['create_invoice', 'get_invoice', 'list_invoices']);
+        expect(result.result.tools.map((tool: { name: string }) => tool.name).sort()).toEqual(['create_invoice', 'get_invoice', 'get_me', 'get_merchant', 'list_invoices', 'list_merchants']);
     });
 
     it('forwards each concurrent request token without sharing merchant credentials', async () => {
         const results = await Promise.all(['123|merchant-a', '456|merchant-b'].map(async (token) =>
-            payload(await rpc('tools/call', token, { name: 'list_invoices', arguments: {} })),
+            payload(await rpc('tools/call', token, { name: 'list_invoices', arguments: { merchantId: 'merchant_1' } })),
         ));
         for (const result of results) expect(result.result.isError).not.toBe(true);
         expect(tokens.slice().sort()).toEqual(['Bearer 123|merchant-a', 'Bearer 456|merchant-b']);
     });
 
+    it('requires an explicit merchant choice before dispatching invoice requests', async () => {
+        const before = tokens.length;
+        const result = await payload(await rpc('tools/call', 'user-token', { name: 'list_invoices', arguments: {} }));
+        expect(result.result.isError).toBe(true);
+        expect(tokens.length).toBe(before);
+    });
+
     it('reports an upstream invalid token as a tool authentication error', async () => {
-        const result = await payload(await rpc('tools/call', 'expired-token', { name: 'list_invoices', arguments: {} }));
+        const result = await payload(await rpc('tools/call', 'expired-token', { name: 'list_invoices', arguments: { merchantId: 'merchant_1' } }));
         expect(result.result.isError).toBe(true);
         expect(result.result.content[0].text).toContain('Authentication failed');
     });

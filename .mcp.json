@@ -2,10 +2,7 @@
   "mcpServers": {
     "bitlink": {
       "type": "streamable-http",
-      "url": "${BITLINK_MCP_URL}",
-      "headers": {
-        "Authorization": "Bearer ${BITLINK_API_TOKEN}"
-      }
+      "url": "${BITLINK_MCP_URL}"
     }
   }
 }

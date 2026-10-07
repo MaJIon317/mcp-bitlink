@@ -1,5 +1,4 @@
 # Template: render with npm run mcp:config before use.
-# Set BITLINK_API_TOKEN in the Codex process environment.
+# Authenticate with the client OAuth login flow.
 [mcp_servers.bitlink]
 url = "${BITLINK_MCP_URL}"
-bearer_token_env_var = "BITLINK_API_TOKEN"

@@ -61,7 +61,9 @@ export class ApiClient {
     ): Promise<T> {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
-        const url = `${this.config.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+        const baseUrl = this.config.baseUrl.replace(/\/+$/, '');
+        const requestPath = baseUrl.endsWith('/v1') && path.startsWith('/v1/') ? path.slice(3) : path;
+        const url = `${baseUrl}${requestPath.startsWith('/') ? requestPath : `/${requestPath}`}`;
 
         this.logger.debug('API request started', { method, path });
 
