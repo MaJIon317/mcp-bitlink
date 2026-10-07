@@ -71,6 +71,7 @@ describe('MCP OAuth federation', () => {
         expect(protectedResource.resource).toBe(resource);
         expect(protectedResource.authorization_servers).toEqual(['https://mcp.example.test']);
         const metadata = await (await handle('/.well-known/oauth-authorization-server')).json();
+        expect(metadata.client_id_metadata_document_supported).toBe(true);
         expect(metadata.code_challenge_methods_supported).toEqual(['S256']);
         expect(metadata.token_endpoint_auth_methods_supported).toEqual(['none']);
         expect(metadata.registration_endpoint).toBeUndefined();
@@ -110,6 +111,29 @@ describe('MCP OAuth federation', () => {
         const other = new OAuthService({ publicUrl: 'https://other-mcp.example.test/mcp', upstreamUrl: 'https://bitlink.example.test',
             upstreamClientId: 'passport-client', clients: { chatgpt: { redirectUris: [callback] } }, store });
         expect(await other.authenticate(tokens.access_token)).toBeNull();
+    });
+    it('completes CIMD authorization, callback, PKCE exchange and refresh with a URL client ID', async () => {
+        const clientId = 'https://chatgpt.com/oauth/client.json';
+        const redirectUri = 'https://chatgpt.com/connector_platform_oauth_redirect';
+        upstream.mockImplementation(async url => new Response(JSON.stringify(String(url) === clientId
+            ? { client_id: clientId, client_name: 'ChatGPT', redirect_uris: [redirectUri], token_endpoint_auth_methods_supported: ['none', 'private_key_jwt'], token_endpoint_auth_method: 'private_key_jwt' }
+            : { token_type: 'Bearer', access_token: upstreamAccess, refresh_token: 'private-refresh', expires_in: 900 }),
+            { headers: { 'Content-Type': 'application/json' } }));
+        const denied = await authorize({ client_id: clientId, redirect_uri: 'https://evil.test/callback' });
+        expect(denied.status).toBe(400);
+        const start = await authorize({ client_id: clientId, redirect_uri: redirectUri });
+        expect(start.status).toBe(302);
+        const state = new URL(start.headers.get('location')!).searchParams.get('state')!;
+        const callbackResponse = await handle('/oauth/callback?' + new URLSearchParams({ state, code: 'upstream-code' }));
+        const location = new URL(callbackResponse.headers.get('location')!);
+        expect(location.origin).toBe('https://chatgpt.com');
+        expect(location.searchParams.get('iss')).toBe('https://mcp.example.test');
+        const exchangeResponse = await exchange(location.searchParams.get('code')!, { client_id: clientId, redirect_uri: redirectUri });
+        expect(exchangeResponse.status).toBe(200);
+        const tokens = await exchangeResponse.json();
+        expect((await oauth.authenticate(tokens.access_token))?.authInfo.clientId).toBe(clientId);
+        const refreshed = await handle('/oauth/token', { client_id: clientId, grant_type: 'refresh_token', refresh_token: tokens.refresh_token, resource });
+        expect(refreshed.status).toBe(200);
     });
     it('rejects bad PKCE, audience, client and redirect binding; code is single-use', async () => {
         const { code: authCode } = await code();

@@ -80,15 +80,27 @@ modify the Bitlink backend or implement a password-login form.
 
 ### Register the agent with MCP
 
-Agent clients are explicitly pre-registered in `OAUTH_CLIENTS_JSON`. For ChatGPT,
-select OAuth when configuring the MCP connection and supply client ID `chatgpt`
-(or another ID you put in that JSON), without a client secret. Copy the exact
-callback URI displayed by ChatGPT into `redirectUris`. This server advertises
-issuer identification, so use the callback shown for this connection rather
-than assuming a fixed callback pattern. Each additional agent needs its own
-client entry and exact callback URI. Wildcards and arbitrary redirects are not
-accepted. Public dynamic registration and CIMD are not advertised or implemented;
-pre-registration is one of the supported MCP registration mechanisms.
+ChatGPT can register using Client ID Metadata Documents (CIMD). OAuth metadata
+advertises `client_id_metadata_document_supported: true`. Select the CIMD method
+in ChatGPT and use the document URL shown by the connection settings. For servers
+with issuer identification, ChatGPT publishes `https://chatgpt.com/oauth/client.json`;
+its redirect URI is validated against the fetched document, not guessed or hardcoded.
+The real document advertises both `none` and `private_key_jwt`; this server supports
+`none` with mandatory PKCE and accepts that intersection even when the legacy
+singular preference is `private_key_jwt`. Signed assertions are not implemented.
+
+Metadata fetches use only trusted HTTPS origins (default `https://chatgpt.com`),
+never follow redirects and send no credentials. Override the comma-separated
+`OAUTH_CLIENT_METADATA_ORIGINS` only for operator-trusted client document hosts.
+Responses must be JSON under 64 KiB, contain matching `client_id`, a nonempty
+`client_name`, exact HTTPS redirect URIs, and support code exchange with `none`.
+Metadata is cached for at most five minutes, honoring `no-store`, `no-cache`,
+`max-age` and `Age`. Stale data is not used after retrieval failure.
+
+Pre-registered clients remain supported in `OAUTH_CLIENTS_JSON` for Postman and
+existing integrations. In this mode select the JSON key (e.g. `chatgpt`) as client
+ID, without a secret, and put the exact callback URI into `redirectUris`. The JSON
+may be empty (`{}`) or omitted when only CIMD is used. DCR is not implemented.
 
 For Codex, render the endpoint configuration with `npm run mcp:config`, merge
 `.local/codex.toml` into the client's configuration and run its OAuth login for

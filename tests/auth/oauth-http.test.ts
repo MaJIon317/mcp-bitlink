@@ -59,14 +59,14 @@ describe('OAuth HTTP integration', () => {
         const data = text.split('\n').find(line => line.startsWith('data:'));
         return JSON.parse(data ? data.slice(5) : text);
     }
-    async function login(scope = 'invoices.read') {
-        const authorization = await fetch(`${url}/oauth/authorize?${new URLSearchParams({ client_id: 'chatgpt', redirect_uri: callback,
+    async function login(scope = 'invoices.read', clientId = 'chatgpt', redirectUri = callback) {
+        const authorization = await fetch(`${url}/oauth/authorize?${new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri,
             resource, scope, state: 'test-state', response_type: 'code', code_challenge_method: 'S256', code_challenge: challenge })}`, { redirect: 'manual' });
         const state = new URL(authorization.headers.get('location')!).searchParams.get('state')!;
         const authorized = await fetch(`${url}/oauth/callback?${new URLSearchParams({ state, code: 'bitlink-code' })}`, { redirect: 'manual' });
         const code = new URL(authorized.headers.get('location')!).searchParams.get('code')!;
         const tokens = await fetch(`${url}/oauth/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ client_id: 'chatgpt', grant_type: 'authorization_code', redirect_uri: callback, code, code_verifier: verifier, resource }) });
+            body: new URLSearchParams({ client_id: clientId, grant_type: 'authorization_code', redirect_uri: redirectUri, code, code_verifier: verifier, resource }) });
         expect(tokens.status).toBe(200);
         return tokens.json() as Promise<{ access_token: string; refresh_token: string }>;
     }
@@ -89,13 +89,37 @@ describe('OAuth HTTP integration', () => {
     });
     it('completes login, returns auth metadata and forwards only the private Bitlink token', async () => {
         const tokens = await login();
+        const initialization = await result(await rpc('initialize', tokens.access_token, {
+            protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'chatgpt-test', version: '1' },
+        }));
+        expect(initialization.result.capabilities.tools).toBeDefined();
         const tools = await result(await rpc('tools/list', tokens.access_token));
+        expect(tools.result.tools.some((tool: { name: string }) => tool.name === 'list_invoices')).toBe(true);
         expect(tools.result.tools.find((tool: { name: string }) => tool.name === 'create_invoice')._meta.securitySchemes)
             .toEqual([{ type: 'oauth2', scopes: ['invoices.create'] }]);
         const invoices = await result(await rpc('tools/call', tokens.access_token, { name: 'list_invoices', arguments: { merchantId: 'merchant_1' } }));
         expect(invoices.result.isError).not.toBe(true);
         expect(apiTokens).toEqual(['Bearer upstream-private-token']);
         expect(JSON.stringify(invoices)).not.toContain('upstream-private-token');
+    });
+    it('connects with ChatGPT URL client ID and calls tools/list after PKCE login', async () => {
+        const clientId = 'https://chatgpt.com/oauth/client.json';
+        const redirectUri = 'https://chatgpt.com/connector_platform_oauth_redirect';
+        const originalFetch = globalThis.fetch;
+        const mock = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => String(input) === clientId
+            ? Promise.resolve(new Response(JSON.stringify({ client_id: clientId, client_name: 'ChatGPT', redirect_uris: [redirectUri],
+                token_endpoint_auth_methods_supported: ['none', 'private_key_jwt'], token_endpoint_auth_method: 'private_key_jwt' }), { headers: { 'Content-Type': 'application/json' } }))
+            : originalFetch(input, init));
+        try {
+            const tokens = await login('invoices.read', clientId, redirectUri);
+            const initialization = await result(await rpc('initialize', tokens.access_token, {
+                protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'chatgpt-cimd-test', version: '1' },
+            }));
+            expect(initialization.result.capabilities.tools).toBeDefined();
+            const tools = await result(await rpc('tools/list', tokens.access_token));
+            expect(tools.result.tools).toHaveLength(6);
+            expect(JSON.stringify(tools)).not.toContain('upstream-private-token');
+        } finally { mock.mockRestore(); }
     });
     it('enforces write scopes before dispatching the tool', async () => {
         const tokens = await login('invoices.read');

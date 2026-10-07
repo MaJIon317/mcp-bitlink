@@ -1,3 +1,6 @@
+import { readLimitedBody, BodyTooLargeError } from './body.js';
+export { readLimitedBody } from './body.js';
+import { ClientMetadataResolver, ClientMetadataError } from './client-metadata.js';
 import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 import type { AuthInfo } from '@modelcontextprotocol/server';
 import { OAuthStore, tokenHash } from './store.js';
@@ -17,6 +20,7 @@ export interface OAuthConfig {
     clients: Record<string, { redirectUris: string[] }>;
     store: OAuthStore;
     timeoutMs?: number;
+    clientMetadataOrigins?: string[];
 }
 type Pending = { resource: string; clientId: string; redirectUri: string; state: string; pkce: string; scopes: string[]; verifier: string };
 type UpstreamTokens = { access_token: string; refresh_token: string; expires_in: number; token_type: string; scope?: string };
@@ -24,21 +28,6 @@ type Connection = { resource: string; clientId: string; scopes: string[]; tokens
 type Grant = { resource: string; connection: string; clientId: string; scopes: string[]; expires: number };
 type Code = Pending & { connection: string };
 
-export async function readLimitedBody(request: Request, maxBytes: number): Promise<string> {
-    const reader = request.body?.getReader();
-    if (!reader) return '';
-    const chunks: Uint8Array[] = []; let length = 0;
-    try {
-        while (true) {
-            const chunk = await reader.read();
-            if (chunk.done) break;
-            length += chunk.value.length;
-            if (length > maxBytes) { void reader.cancel(); throw new OAuthFailure('invalid_request', 'Request too large', 413); }
-            chunks.push(chunk.value);
-        }
-        return Buffer.concat(chunks).toString('utf8');
-    } finally { reader.releaseLock(); }
-}
 
 class OAuthFailure extends Error {
     constructor(public code: string, message: string, public status = 400) { super(message); }
@@ -63,8 +52,10 @@ export class OAuthService {
     readonly resource: string;
     readonly metadataUrl: string;
     private readonly upstream: string;
+    private readonly clientMetadata: ClientMetadataResolver;
     private readonly refreshing = new Map<string, Promise<Connection>>();
     constructor(private readonly config: OAuthConfig) {
+        this.clientMetadata = new ClientMetadataResolver(config.clientMetadataOrigins, config.timeoutMs);
         const publicUrl = secureUrl(config.publicUrl);
         if (publicUrl.pathname !== '/mcp') throw new Error('BITLINK_MCP_URL must use the /mcp path');
         this.issuer = publicUrl.origin;
@@ -90,11 +81,15 @@ export class OAuthService {
         if (params.getAll(key).length > 1) throw new OAuthFailure('invalid_request', `Duplicate ${key}`);
         return params.get(key) ?? '';
     }
-    private validateClient(params: URLSearchParams) {
+    private async validateClient(params: URLSearchParams) {
         const id = this.single(params, 'client_id');
         const client = this.config.clients[id];
-        if (!Object.hasOwn(this.config.clients, id) || !client) throw new OAuthFailure('invalid_client', 'Unknown client');
-        return { id, client };
+        if (Object.hasOwn(this.config.clients, id) && client) return { id, client };
+        try { return { id, client: await this.clientMetadata.resolve(id) }; }
+        catch (error) {
+            if (error instanceof ClientMetadataError) throw new OAuthFailure('invalid_client', 'Unknown client or invalid client metadata');
+            throw error;
+        }
     }
     private validateResource(params: URLSearchParams) {
         if (this.single(params, 'resource') !== this.resource) throw new OAuthFailure('invalid_target', 'Incorrect MCP resource');
@@ -137,14 +132,14 @@ export class OAuthService {
                 return json({ issuer: this.issuer, authorization_endpoint: `${this.issuer}/oauth/authorize`, token_endpoint: `${this.issuer}/oauth/token`,
                     revocation_endpoint: `${this.issuer}/oauth/revoke`, response_types_supported: ['code'], grant_types_supported: ['authorization_code', 'refresh_token'],
                     token_endpoint_auth_methods_supported: ['none'], code_challenge_methods_supported: ['S256'], scopes_supported: oauthScopes,
-                    authorization_response_iss_parameter_supported: true });
+                    client_id_metadata_document_supported: true, authorization_response_iss_parameter_supported: true });
             }
-            if (path === '/oauth/authorize') return this.authorize(url.searchParams);
+            if (path === '/oauth/authorize') return await this.authorize(url.searchParams);
             if (path === '/oauth/callback') return await this.callback(url.searchParams);
             if (!request.headers.get('content-type')?.startsWith('application/x-www-form-urlencoded')) throw new OAuthFailure('invalid_request', 'Expected form encoding');
             const body = await readLimitedBody(request, 16_384);
             const params = new URLSearchParams(body);
-            const { id } = this.validateClient(params);
+            const { id } = await this.validateClient(params);
             if (path === '/oauth/revoke') {
                 const token = this.single(params, 'token');
                 const grant = this.config.store.get<Grant>(`refresh:${tokenHash(token)}`) ?? this.config.store.get<Grant>(`access:${tokenHash(token)}`) ?? this.config.store.get<Grant>(`used:${tokenHash(token)}`);
@@ -154,12 +149,13 @@ export class OAuthService {
             this.validateResource(params);
             return await this.token(params, id);
         } catch (error) {
+            if (error instanceof BodyTooLargeError) return json({ error: 'invalid_request', error_description: 'Request too large' }, 413);
             if (error instanceof OAuthFailure) return json({ error: error.code, error_description: error.message }, error.status);
             return json({ error: 'server_error', error_description: 'Authorization service unavailable' }, 503);
         }
     }
-    private authorize(params: URLSearchParams) {
-        const { id, client } = this.validateClient(params);
+    private async authorize(params: URLSearchParams) {
+        const { id, client } = await this.validateClient(params);
         const redirectUri = this.single(params, 'redirect_uri');
         if (!client.redirectUris.includes(redirectUri)) throw new OAuthFailure('invalid_request', 'Unregistered redirect URI');
         try {

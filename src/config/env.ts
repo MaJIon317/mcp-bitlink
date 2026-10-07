@@ -7,6 +7,7 @@ const schema = z.object({
     BITLINK_OAUTH_BASE_URL: z.string().optional(),
     BITLINK_OAUTH_CLIENT_ID: z.string().optional(),
     BITLINK_OAUTH_CLIENT_SECRET: z.string().optional(),
+    OAUTH_CLIENT_METADATA_ORIGINS: z.string().default('https://chatgpt.com'),
     OAUTH_CLIENTS_JSON: z.string().optional(),
     OAUTH_ENCRYPTION_KEY: z.string().optional(),
     OAUTH_STORE_PATH: z.string().default('.local/oauth.sqlite'),

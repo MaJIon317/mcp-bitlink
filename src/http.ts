@@ -95,18 +95,24 @@ function createHandlers(oauth: OAuthService | null) {
             const accessToken = extractBearerToken(request);
 
             if (!accessToken) {
+                rootLogger.info('MCP authorization required', { method: request.method, status: 401 });
                 return withCors(oauth ? oauth.unauthorized() : unauthorizedResponse(), request);
             }
 
             const authenticated = oauth ? await oauth.authenticate(accessToken) : null;
-            if (oauth && !authenticated) return withCors(oauth.unauthorized(), request);
+            if (oauth && !authenticated) {
+                rootLogger.info('MCP token rejected', { method: request.method, status: 401 });
+                return withCors(oauth.unauthorized(), request);
+            }
             const authInfo = authenticated?.authInfo ?? toLegacyAuthInfo(accessToken);
+            let rpcMethod: string | undefined;
             if (oauth && request.method === 'POST') {
                 // Enforce scopes at the transport layer before any tool executes.
                 let raw: string;
                 try { raw = await readLimitedBody(request.clone(), 4 * 1024 * 1024); }
                 catch { void request.body?.cancel(); return withCors(new Response(null, { status: 413 }), request); }
                 const body = (() => { try { return JSON.parse(raw); } catch { return null; } })() as { method?: string; params?: { name?: string } } | null;
+                if (['initialize', 'tools/list', 'tools/call', 'notifications/initialized', 'ping'].includes(body?.method ?? '')) rpcMethod = body?.method;
                 const name = body?.method === 'tools/call' ? body.params?.name : undefined;
                 const required = name === 'create_invoice' ? 'invoices.create'
                     : name && ['list_invoices', 'get_invoice'].includes(name) ? 'invoices.read' : null;
@@ -119,10 +125,21 @@ function createHandlers(oauth: OAuthService | null) {
                 authInfo,
             });
 
+            rootLogger.info('MCP response', { method: request.method, rpcMethod, status: response.status });
             return withCors(response, request);
         },
     });
-    return { nodeHandler, oauthHandler: oauth ? toNodeHandler({ fetch: async request => withCors((await oauth.handle(request)) ?? new Response(null, { status: 404 }), request) }) : null, close: mcpHandler.close };
+    return { nodeHandler, oauthHandler: oauth ? toNodeHandler({ fetch: async request => {
+        const response = (await oauth.handle(request)) ?? new Response(null, { status: 404 });
+        const path = new URL(request.url).pathname;
+        const location = response.headers.get('location');
+        const destination = location ? new URL(location) : null;
+        rootLogger.info('OAuth response', {
+            path, method: request.method, status: response.status,
+            ...(destination ? { redirectOrigin: destination.origin, oauthError: destination.searchParams.get('error') ?? undefined } : {}),
+        });
+        return withCors(response, request);
+    } }) : null, close: mcpHandler.close };
 }
 
 function writeCors(request: IncomingMessage, response: ServerResponse): void {
@@ -134,11 +151,11 @@ function writeCors(request: IncomingMessage, response: ServerResponse): void {
 function configuredOAuth(): { oauth: OAuthService; store: OAuthStore } | null {
     if (env.AUTH_MODE === 'bearer') return null;
     const { BITLINK_MCP_URL, BITLINK_OAUTH_BASE_URL, BITLINK_OAUTH_CLIENT_ID, OAUTH_CLIENTS_JSON, OAUTH_ENCRYPTION_KEY } = env;
-    if (!BITLINK_MCP_URL || !BITLINK_OAUTH_BASE_URL || !BITLINK_OAUTH_CLIENT_ID || !OAUTH_CLIENTS_JSON || !OAUTH_ENCRYPTION_KEY) {
-        throw new Error('OAuth requires BITLINK_MCP_URL, BITLINK_OAUTH_BASE_URL, BITLINK_OAUTH_CLIENT_ID, OAUTH_CLIENTS_JSON and OAUTH_ENCRYPTION_KEY. See docs/openai-plugin-connect.md.');
+    if (!BITLINK_MCP_URL || !BITLINK_OAUTH_BASE_URL || !BITLINK_OAUTH_CLIENT_ID || !OAUTH_ENCRYPTION_KEY) {
+        throw new Error('OAuth requires BITLINK_MCP_URL, BITLINK_OAUTH_BASE_URL, BITLINK_OAUTH_CLIENT_ID and OAUTH_ENCRYPTION_KEY. See docs/openai-plugin-connect.md.');
     }
-    const clients: unknown = JSON.parse(OAUTH_CLIENTS_JSON);
-    if (!clients || typeof clients !== 'object' || Array.isArray(clients) || !Object.keys(clients).length ||
+    const clients: unknown = JSON.parse(OAUTH_CLIENTS_JSON?.trim() || '{}');
+    if (!clients || typeof clients !== 'object' || Array.isArray(clients) ||
         Object.values(clients).some(client => !client || typeof client !== 'object' || !Array.isArray(client.redirectUris) || client.redirectUris.some((uri: unknown) => typeof uri !== 'string'))) {
         throw new Error('OAUTH_CLIENTS_JSON must map client IDs to { redirectUris: [exact HTTPS callback URLs] }');
     }
@@ -147,6 +164,7 @@ function configuredOAuth(): { oauth: OAuthService; store: OAuthStore } | null {
         upstreamClientId: BITLINK_OAUTH_CLIENT_ID, clients: clients as Record<string, { redirectUris: string[] }>, store,
         ...(env.BITLINK_OAUTH_CLIENT_SECRET ? { upstreamClientSecret: env.BITLINK_OAUTH_CLIENT_SECRET } : {}),
         timeoutMs: env.CRYPTO_API_TIMEOUT_MS,
+        clientMetadataOrigins: env.OAUTH_CLIENT_METADATA_ORIGINS.split(',').map(value => value.trim()).filter(Boolean),
     });
     return { oauth, store };
 }
