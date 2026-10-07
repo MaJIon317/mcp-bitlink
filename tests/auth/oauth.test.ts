@@ -203,3 +203,27 @@ describe('MCP OAuth federation', () => {
         expect((await handle('/oauth/token', { client_id: 'x'.repeat(17_000) })).status).toBe(413);
     });
 });
+
+
+describe('upstream OAuth error diagnostics', () => {
+    it.each([
+        [400, 'invalid_grant', 400, 'invalid_grant'],
+        [401, 'invalid_client', 400, 'invalid_grant'],
+        [500, 'server_error', 502, 'server_error'],
+    ])('reports upstream HTTP %i and error %s safely', async (status, error, expectedStatus, expectedError) => {
+        const authorization = await authorize();
+        const state = new URL(authorization.headers.get('location')!).searchParams.get('state')!;
+        upstream.mockResolvedValueOnce(new Response(JSON.stringify({ error, error_description: 'private-secret' }), { status }));
+        const response = await handle(`/oauth/callback?${new URLSearchParams({ state, code: 'passport-code' })}`);
+        expect(response.status).toBe(expectedStatus);
+        expect(await response.json()).toEqual({ error: expectedError, error_description: `Bitlink /oauth/token returned HTTP ${status} (${error})` });
+    });
+    it('handles an HTML upstream error without exposing its body', async () => {
+        const authorization = await authorize();
+        const state = new URL(authorization.headers.get('location')!).searchParams.get('state')!;
+        upstream.mockResolvedValueOnce(new Response('<html>private-secret</html>', { status: 503 }));
+        const response = await handle(`/oauth/callback?${new URLSearchParams({ state, code: 'passport-code' })}`);
+        expect(response.status).toBe(502);
+        expect(await response.json()).toEqual({ error: 'server_error', error_description: 'Bitlink /oauth/token returned HTTP 503 (unknown_error)' });
+    });
+});

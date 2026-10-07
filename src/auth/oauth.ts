@@ -107,7 +107,14 @@ export class OAuthService {
                 ...(this.config.upstreamClientSecret ? { client_secret: this.config.upstreamClientSecret } : {}),
             }),
         });
-        if (!response.ok) throw new OAuthFailure('invalid_grant', 'Bitlink authorization is no longer valid');
+        if (!response.ok) {
+            // Include only known protocol errors; upstream response bodies may contain secrets.
+            const body = await response.json().catch(() => null) as { error?: unknown } | null;
+            const knownErrors = ['invalid_request', 'invalid_client', 'invalid_grant', 'unauthorized_client', 'unsupported_grant_type', 'invalid_scope', 'server_error', 'temporarily_unavailable'];
+            const upstreamError = typeof body?.error === 'string' && knownErrors.includes(body.error) ? body.error : 'unknown_error';
+            throw new OAuthFailure(response.status >= 500 ? 'server_error' : 'invalid_grant',
+                `Bitlink /oauth/token returned HTTP ${response.status} (${upstreamError})`, response.status >= 500 ? 502 : 400);
+        }
         const tokens = await response.json() as UpstreamTokens;
         if (typeof tokens.access_token !== 'string' || !tokens.access_token || typeof tokens.refresh_token !== 'string' || !tokens.refresh_token || (tokens.scope !== undefined && typeof tokens.scope !== 'string') || !Number.isFinite(tokens.expires_in) || tokens.expires_in <= 0 || typeof tokens.token_type !== 'string' || tokens.token_type.toLowerCase() !== 'bearer') {
             throw new OAuthFailure('server_error', 'Invalid authorization server response', 502);
