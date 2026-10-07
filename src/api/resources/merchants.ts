@@ -7,7 +7,7 @@ export const merchantSchema = z.object({
     id: z.string(), name: z.string(), address: z.string(), city: z.string(),
     post_code: z.string(), country: z.string().nullable(),
     verification_status: z.string(), role: z.string().nullable(),
-    is_owner: z.string().nullable(),
+    is_owner: z.boolean().nullable(),
 });
 export const userSchema = z.object({ id: z.string(), email: z.string(), name: z.string() });
 type Merchant = z.infer<typeof merchantSchema>;

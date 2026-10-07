@@ -3,7 +3,7 @@ import { ApiClient } from '../../src/api/client.js';
 import { MerchantsApi } from '../../src/api/resources/merchants.js';
 
 const merchant = { id: 'm/1', name: 'Shop', address: '', city: '', post_code: '', country: null,
-    verification_status: 'verified', role: null, is_owner: '1' };
+    verification_status: 'verified', role: null, is_owner: true };
 afterEach(() => vi.restoreAllMocks());
 
 function setup(data: unknown, meta = {}) {
