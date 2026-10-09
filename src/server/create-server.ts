@@ -1,6 +1,7 @@
 import { MerchantsApi } from '../api/resources/merchants.js';
-import { merchantInstructions, registerMerchantTools } from '../tools/merchants.js';
+import { merchantInstructions, registerListMerchantsTool, registerGetMerchantTool, registerGetMeTool } from '../tools/merchants.js';
 import { McpServer } from '@modelcontextprotocol/server';
+import type { ToolName } from '../config/tool-policy.js';
 import { env } from '../config/env.js';
 import { ApiClient } from '../api/client.js';
 import { InvoicesApi } from '../api/resources/invoices.js';
@@ -44,17 +45,25 @@ export function createServer(
             version: env.MCP_SERVER_VERSION,
         },
         {
-            instructions: merchantInstructions,
+            ...(env.MCP_DISABLED_TOOLS.includes('list_merchants') ? {} : { instructions: merchantInstructions }),
             capabilities: {
                 tools: {},
             },
         },
     );
 
-    registerMerchantTools(server, new MerchantsApi(apiClient), logger);
-    registerListInvoicesTool(server, invoices, logger);
-    registerCreateInvoiceTool(server, invoices, logger);
-    registerGetInvoiceTool(server, invoices, logger);
+    const merchants = new MerchantsApi(apiClient);
+    const registrations: Record<ToolName, () => void> = {
+        get_me: () => registerGetMeTool(server, merchants, logger),
+        list_merchants: () => registerListMerchantsTool(server, merchants, logger),
+        get_merchant: () => registerGetMerchantTool(server, merchants, logger),
+        list_invoices: () => registerListInvoicesTool(server, invoices, logger),
+        create_invoice: () => registerCreateInvoiceTool(server, invoices, logger),
+        get_invoice: () => registerGetInvoiceTool(server, invoices, logger),
+    };
+    for (const name of Object.keys(registrations) as ToolName[]) {
+        if (!env.MCP_DISABLED_TOOLS.includes(name)) registrations[name]();
+    }
 
     return server;
 }

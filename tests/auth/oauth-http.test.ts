@@ -22,6 +22,7 @@ describe('OAuth HTTP integration', () => {
         return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     }
     beforeAll(async () => {
+        vi.stubEnv('MCP_DISABLED_TOOLS', '');
         api = createServer((request, response) => {
             response.setHeader('Content-Type', 'application/json');
             if (request.url === '/oauth/token') {

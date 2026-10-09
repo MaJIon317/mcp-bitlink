@@ -14,6 +14,7 @@ describe('HTTP Bearer authentication', () => {
     }
 
     beforeAll(async () => {
+        vi.stubEnv('MCP_DISABLED_TOOLS', '');
         api = createServer((request, response) => {
             tokens.push(request.headers.authorization ?? '');
             response.setHeader('Content-Type', 'application/json');

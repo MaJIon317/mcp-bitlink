@@ -25,6 +25,24 @@ requires a new choice. Checkout and Webhook are outside this server’s scope.
 
 `whichWallet` accepts `new` or `user`.
 
+### Disable tools
+
+Set `MCP_DISABLED_TOOLS` in the server's `.env` to tool names separated by commas:
+
+```dotenv
+MCP_DISABLED_TOOLS=create_invoice
+```
+
+Disabled tools are not registered: they are absent from `tools/list`, including
+schemas and descriptions, and cannot be called. Any tool in the table above can
+be disabled. An empty value enables all tools; unknown names fail startup to
+catch typos. The example configuration disables invoice creation.
+
+Restart the server after changing the setting and refresh the client's tool list
+or reconnect. Existing conversations may retain previously loaded descriptions;
+start a new conversation to discard that context. Optional skills should use the
+live tool list rather than hardcode available tools.
+
 ## Connect an agent
 
 OAuth is enabled by default. The agent opens Bitlink's login and consent page,

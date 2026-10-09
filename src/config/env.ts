@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { z } from 'zod';
+import { disabledToolsSchema } from './tool-policy.js';
 
 const schema = z.object({
     AUTH_MODE: z.enum(['oauth', 'bearer']).default('oauth'),
@@ -16,6 +17,7 @@ const schema = z.object({
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     CRYPTO_API_BASE_URL: z.url().transform((value) => value.replace(/\/+$/, '')),
     CRYPTO_API_TIMEOUT_MS: z.coerce.number().int().positive().max(60_000).default(10_000),
+    MCP_DISABLED_TOOLS: disabledToolsSchema,
     MCP_SERVER_NAME: z.string().min(1).default('bitlink'),
     MCP_SERVER_VERSION: z.string().min(1).default('0.1.0'),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
