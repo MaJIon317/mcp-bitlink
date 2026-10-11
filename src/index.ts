@@ -10,6 +10,7 @@ server.listen(env.PORT, env.HOST, () => {
     rootLogger.info('MCP server listening', {
         host: env.HOST,
         port: env.PORT,
+        disabledTools: env.MCP_DISABLED_TOOLS,
         healthUrl: `http://${displayHost}:${env.PORT}/health`,
         mcpUrl: `http://${displayHost}:${env.PORT}/mcp`,
     });

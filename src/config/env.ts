@@ -5,6 +5,7 @@ import { disabledToolsSchema } from './tool-policy.js';
 const schema = z.object({
     AUTH_MODE: z.enum(['oauth', 'bearer']).default('oauth'),
     BITLINK_MCP_URL: z.string().optional(),
+    OPENAI_APPS_CHALLENGE_TOKEN: z.string().trim().regex(/^[A-Za-z0-9_-]*$/).default(''),
     BITLINK_OAUTH_BASE_URL: z.string().optional(),
     BITLINK_OAUTH_CLIENT_ID: z.string().optional(),
     BITLINK_OAUTH_CLIENT_SECRET: z.string().optional(),

@@ -38,9 +38,13 @@ schemas and descriptions, and cannot be called. Any tool in the table above can
 be disabled. An empty value enables all tools; unknown names fail startup to
 catch typos. The example configuration disables invoice creation.
 
-Restart the server after changing the setting and refresh the client's tool list
-or reconnect. Existing conversations may retain previously loaded descriptions;
-start a new conversation to discard that context. Optional skills should use the
+The server reads `.env` from its working directory and process environment, not
+`.env.example`. Process environment values take precedence over `.env`.
+Apply the setting on the deployed server, rebuild if the code changed, and restart.
+For a custom MCP connection in ChatGPT, open its connection settings, select
+**Refresh**, verify the tool list, and start a new conversation. Simply asking the
+model to check again does not verify the server's current `tools/list` response.
+See the [official refresh instructions](https://developers.openai.com/plugins/deploy/connect-chatgpt/#refresh-metadata). Optional skills should use the
 live tool list rather than hardcode available tools.
 
 ## Connect an agent

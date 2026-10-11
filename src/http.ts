@@ -186,6 +186,23 @@ export function createHttpServer(options?: { oauth: OAuthService }) {
 
             const path = request.url?.split('?')[0] ?? '';
 
+            if (path === '/.well-known/openai-apps-challenge') {
+                response.setHeader('Cache-Control', 'no-store');
+                if (!env.OPENAI_APPS_CHALLENGE_TOKEN) {
+                    response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                    response.end('Not found');
+                    return;
+                }
+                if (request.method !== 'GET' && request.method !== 'HEAD') {
+                    response.writeHead(405, { Allow: 'GET, HEAD' });
+                    response.end();
+                    return;
+                }
+                response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+                response.end(request.method === 'HEAD' ? undefined : env.OPENAI_APPS_CHALLENGE_TOKEN);
+                return;
+            }
+
             if (path === '/health') {
                 response.writeHead(200, { 'content-type': 'application/json' });
                 response.end(JSON.stringify({ status: 'ok' }));

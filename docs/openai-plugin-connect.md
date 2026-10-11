@@ -171,3 +171,26 @@ It is an opt-in migration mode, not the default ChatGPT integration.
 - [OpenAI authentication](https://developers.openai.com/plugins/build/auth)
 - [MCP authorization](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization)
 - [MCP security practices](https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices)
+
+## OpenAI domain verification
+
+Set `OPENAI_APPS_CHALLENGE_TOKEN` in the deployed server's `.env` or process
+environment to the exact token from the OpenAI portal. `.env.example` is only a
+template. Rebuild after deploying code changes and restart the server.
+
+The public endpoint `GET /.well-known/openai-apps-challenge` returns HTTP 200
+with `Content-Type: text/plain; charset=utf-8` and only the token, without a
+newline or JSON wrapper. It requires no Bearer token or OAuth login and works
+in both authentication modes. An empty setting returns HTTP 404.
+
+Ensure the HTTPS reverse proxy forwards this root path to the Node server,
+not only `/mcp` and `/oauth/`. The path must be accessible without proxy login
+or a browser challenge. For `https://mcp.bitlink.ch/mcp`, check:
+
+```sh
+curl -i https://mcp.bitlink.ch/.well-known/openai-apps-challenge
+```
+
+Confirm status 200 and the exact token, then select **Verify Domain** in the
+OpenAI portal. Keep the Challenge Base URL blank to use the MCP hostname.
+See [OpenAI domain verification requirements](https://developers.openai.com/plugins/deploy/submission/#domain-verification-details).
