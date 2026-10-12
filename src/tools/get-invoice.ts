@@ -18,6 +18,7 @@ export function registerGetInvoiceTool(
                 'Use the merchant selected in this conversation. If none is selected, list merchants and ask the user once; reuse the choice until the user explicitly switches. ' +
                 'Get an invoice owned by the merchant selected by the user, including its current payment status.',
             _meta: { securitySchemes: [{ type: 'oauth2', scopes: ['invoices.read'] }] },
+            annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
             inputSchema: getInvoiceInputSchema,
         },
         async ({ merchantId, invoiceId }) => {

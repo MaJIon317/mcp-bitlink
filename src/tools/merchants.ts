@@ -19,7 +19,7 @@ export function registerListMerchantsTool(server: McpServer, merchants: Merchant
         description: 'List merchants accessible to the authenticated user, with IDs, names and pagination. ' + merchantInstructions,
         _meta: { securitySchemes: [{ type: 'oauth2', scopes: [] }] },
         inputSchema: z.object({ page: z.number().int().min(1).optional() }),
-        annotations: { readOnlyHint: true },
+        annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     }, async ({ page }) => {
         try { return successResult(await merchants.list(page)); }
         catch (error) { return errorResult(logger, error); }
@@ -31,7 +31,7 @@ export function registerGetMerchantTool(server: McpServer, merchants: MerchantsA
         description: 'Get an accessible merchant by ID. Does not change the merchant chosen for invoice operations.',
         _meta: { securitySchemes: [{ type: 'oauth2', scopes: [] }] },
         inputSchema: z.object({ merchantId: merchantIdSchema }),
-        annotations: { readOnlyHint: true },
+        annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     }, async ({ merchantId }) => {
         try { return successResult(await merchants.get(merchantId)); }
         catch (error) { return errorResult(logger, error); }
@@ -43,7 +43,7 @@ export function registerGetMeTool(server: McpServer, merchants: MerchantsApi, lo
         description: 'Get the authenticated user profile. Authentication is user-level; choose a merchant separately for invoices.',
         _meta: { securitySchemes: [{ type: 'oauth2', scopes: [] }] },
         inputSchema: z.object({}),
-        annotations: { readOnlyHint: true },
+        annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     }, async () => {
         try { return successResult(await merchants.me()); }
         catch (error) { return errorResult(logger, error); }

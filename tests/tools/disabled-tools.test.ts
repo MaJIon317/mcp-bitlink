@@ -61,6 +61,14 @@ describe('MCP tool visibility and dispatch', () => {
             const result = await rpc('tools/list');
             expect(result.result.tools.map((tool: { name: string }) => tool.name).sort())
                 .toEqual(toolNames.filter((name) => !excluded.includes(name)).sort());
+            for (const tool of result.result.tools) {
+                if (tool.name === 'create_invoice') continue;
+                expect(tool.annotations).toEqual({
+                    readOnlyHint: true,
+                    destructiveHint: false,
+                    openWorldHint: false,
+                });
+            }
             for (const name of excluded) {
                 expect(JSON.stringify(result)).not.toContain(name);
                 const call = await rpc('tools/call', { name, arguments: {} });

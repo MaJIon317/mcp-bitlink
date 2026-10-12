@@ -18,6 +18,7 @@ export function registerListInvoicesTool(
                 'Use the merchant selected in this conversation. If none is selected, list merchants and ask the user once; reuse the choice until the user explicitly switches. ' +
                 'List invoices owned by the merchant selected by the user. Supports filtering, sorting and pagination.',
             _meta: { securitySchemes: [{ type: 'oauth2', scopes: ['invoices.read'] }] },
+            annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
             inputSchema: listInvoicesInputSchema,
         },
         async (input) => {
