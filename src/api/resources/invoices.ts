@@ -151,11 +151,13 @@ export class InvoicesApi {
                 which_wallet: input.whichWallet,
                 amount: input.amount,
                 currency: input.currency,
-                name: input.name,
-                country: input.country,
-                ...(input.object !== undefined ? { object: input.object } : {}),
-                ...(input.email !== undefined ? { email: input.email } : {}),
-                ...(input.address !== undefined ? { address: input.address } : {}),
+                ...(input.whichWallet === 'new' ? {
+                    name: input.name,
+                    country: input.country,
+                    ...(input.object !== undefined ? { object: input.object } : {}),
+                    ...(input.email !== undefined ? { email: input.email } : {}),
+                    ...(input.address !== undefined ? { address: input.address } : {}),
+                } : {}),
             },
         );
 

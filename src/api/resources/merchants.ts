@@ -4,8 +4,8 @@ import type { ApiResponse, NestedPaginatedData } from '../types.js';
 import { UnexpectedResponseError } from '../errors.js';
 
 export const merchantSchema = z.object({
-    id: z.string(), name: z.string(), address: z.string(), city: z.string(),
-    post_code: z.string(), country: z.string().nullable(),
+    id: z.string(), name: z.string(), address: z.string().nullable(), city: z.string().nullable(),
+    post_code: z.string().nullable(), country: z.string().nullable(),
     verification_status: z.string(), role: z.string().nullable(),
     is_owner: z.boolean().nullable(),
 });

@@ -35,3 +35,9 @@ describe('MerchantsApi', () => {
         expect(fetchMock).toHaveBeenCalledWith('https://example.test/api/v1/me', expect.anything());
     });
 });
+
+it('accepts nullable merchant address fields returned by Laravel', async () => {
+    const data = { ...merchant, address: null, city: null, post_code: null };
+    const { api } = setup(data);
+    expect(await api.get('m1')).toEqual(data);
+});

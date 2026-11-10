@@ -18,7 +18,7 @@ function invoicePayload(overrides: Record<string, unknown> = {}) {
         name: 'John Doe',
         email: 'john@example.com',
         address: 'Berlin',
-        country: 'DEU',
+        country: 'DE',
         payment_link: 'https://pay.example.test/i/inv_1',
         created_at: '2026-09-30T10:00:00Z',
         updated_at: '2026-09-30T10:00:00Z',
@@ -78,7 +78,7 @@ describe('InvoicesApi', () => {
             perPage: 15,
             status: 'pending',
             currency: 'EUR',
-            country: 'DEU',
+            country: 'DE',
             sortBy: 'created_at',
             sortDirection: 'desc',
         });
@@ -98,7 +98,7 @@ describe('InvoicesApi', () => {
         });
 
         expect(fetchMock).toHaveBeenCalledWith(
-            'https://api.example.test/api/v1/merchants/merchant_1/invoices?page=1&per_page=15&sort_by=created_at&sort_direction=desc&status=pending&currency=EUR&country=DEU',
+            'https://api.example.test/api/v1/merchants/merchant_1/invoices?page=1&per_page=15&sort_by=created_at&sort_direction=desc&status=pending&currency=EUR&country=DE',
             expect.objectContaining({
                 method: 'GET',
                 headers: expect.objectContaining({
@@ -206,7 +206,7 @@ describe('InvoicesApi', () => {
             amount: 50,
             currency: 'USD',
             name: 'Jane Doe',
-            country: 'USA',
+            country: 'US',
         });
 
         expect(fetchMock).toHaveBeenCalledWith(
@@ -216,8 +216,6 @@ describe('InvoicesApi', () => {
                     which_wallet: 'user',
                     amount: 50,
                     currency: 'USD',
-                    name: 'Jane Doe',
-                    country: 'USA',
                 }),
             }),
         );
@@ -246,7 +244,7 @@ describe('InvoicesApi', () => {
             currency: 'EUR',
             name: 'John Doe',
             email: 'john@example.com',
-            country: 'DEU',
+            country: 'DE',
             object: 'Order #1',
         });
 
@@ -266,7 +264,7 @@ describe('InvoicesApi', () => {
                     amount: 100,
                     currency: 'EUR',
                     name: 'John Doe',
-                    country: 'DEU',
+                    country: 'DE',
                     object: 'Order #1',
                     email: 'john@example.com',
                 }),
@@ -317,4 +315,10 @@ describe('InvoicesApi', () => {
             }),
         );
     });
+});
+
+it('accepts cancelled invoices returned by the backend', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(successEnvelope(invoicePayload({ status: 'cancelled' })))));
+    const api = new InvoicesApi(new ApiClient({ baseUrl: 'https://api.example.test/api/v1', accessToken: 'token', timeoutMs: 1000 }));
+    expect((await api.get('m1', 'invoice')).status).toBe('cancelled');
 });

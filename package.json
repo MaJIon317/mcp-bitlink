@@ -11,7 +11,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "mcp:config": "node scripts/render-mcp-config.mjs"
+    "mcp:config": "node scripts/render-mcp-config.mjs",
+    "backend:check": "node scripts/check-backend.mjs",
+    "test:backend": "node scripts/test-backend.mjs"
   },
   "engines": {
     "node": ">=22.13"

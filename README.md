@@ -57,6 +57,8 @@ Configure the public `BITLINK_MCP_URL`, Bitlink Passport client, exact agent cal
 URLs and persistent encryption key. See the complete
 [OAuth deployment and ChatGPT connection guide](docs/openai-plugin-connect.md).
 The backend must already expose Passport `/oauth/authorize` and `/oauth/token`.
+For local Laravel on port 8311, see the [backend integration guide](docs/backend-integration.md)
+and run `npm run backend:check` to check discovery and API routing.
 
 `mcp.json`, `.mcp.json`, `cursor.mcp.json` and `.codex/config.toml.template` contain
 endpoint configuration only. Generate resolved configurations with:
@@ -83,7 +85,7 @@ npm start
 ```
 
 Set `CRYPTO_API_BASE_URL` to the Bitlink REST API (`/api` or `/api/v1`).
-Default listen address: `0.0.0.0:3000`.
+Default listen address: `0.0.0.0:3000`; the local `.env.example` uses port `3500`.
 
 - Health: `GET /health`
 - MCP endpoint: `/mcp`

@@ -21,8 +21,8 @@ export const countryCodeSchema = z.preprocess(
     (value) => (typeof value === 'string' ? value.trim().toUpperCase() : value),
     z
         .string()
-        .length(3)
-        .regex(/^[A-Z]{3}$/, 'Country must be an ISO 3166-1 alpha-3 code like USA or DEU'),
+        .length(2)
+        .regex(/^[A-Z]{2}$/, 'Country must be an ISO 3166-1 alpha-2 code like US or DE'),
 );
 
 /** Optional string fields: treat "" / null as omitted. */

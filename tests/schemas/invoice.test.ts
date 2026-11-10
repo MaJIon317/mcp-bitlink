@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createInvoiceInputSchema } from '../../src/schemas/invoice.js';
+import { createInvoiceInputSchema, listInvoicesInputSchema } from '../../src/schemas/invoice.js';
 
 describe('createInvoiceInputSchema', () => {
     it('normalizes currency/country and accepts empty optional email', () => {
@@ -11,7 +11,7 @@ describe('createInvoiceInputSchema', () => {
             name: ' John Doe ',
             email: '',
             address: '',
-            country: ' usa ',
+            country: ' us ',
         });
 
         expect(parsed).toEqual({
@@ -20,7 +20,7 @@ describe('createInvoiceInputSchema', () => {
             amount: 100,
             currency: 'USD',
             name: 'John Doe',
-            country: 'usa',
+            country: 'US',
         });
     });
 
@@ -32,10 +32,25 @@ describe('createInvoiceInputSchema', () => {
             currency: 'EUR',
             name: 'Jane',
             email: 'jane@example.com',
-            country: 'DEU',
+            country: 'DE',
         });
 
         expect(parsed.whichWallet).toBe('user');
         expect(parsed.email).toBe('jane@example.com');
     });
+});
+
+it('accepts existing-wallet invoices without collecting unused customer details', () => {
+    expect(createInvoiceInputSchema.parse({ merchantId: 'm1', whichWallet: 'user', amount: 5, currency: 'USD' }))
+        .toEqual({ merchantId: 'm1', whichWallet: 'user', amount: 5, currency: 'USD' });
+});
+it('requires customer name and alpha-2 country for a new wallet', () => {
+    const input = { merchantId: 'm1', whichWallet: 'new', amount: 5, currency: 'USD' };
+    expect(createInvoiceInputSchema.safeParse(input).success).toBe(false);
+    expect(createInvoiceInputSchema.safeParse({ ...input, name: 'Customer', country: 'USA' }).success).toBe(false);
+    expect(createInvoiceInputSchema.safeParse({ ...input, name: 'Customer', country: 'us' }).success).toBe(true);
+});
+it('accepts the current backend cancelled status and alpha-2 country filters', () => {
+    expect(listInvoicesInputSchema.parse({ merchantId: 'm1', status: 'cancelled', country: ' de ' }))
+        .toMatchObject({ status: 'cancelled', country: 'DE' });
 });

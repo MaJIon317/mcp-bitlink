@@ -9,6 +9,7 @@ import {
 } from './common.js';
 
 export const invoiceStatusSchema = z.enum([
+    'cancelled',
     'pending',
     'pending_paid',
     'complete',
@@ -40,16 +41,14 @@ export const createInvoiceInputSchema = z.object({
     amount: amountSchema,
     currency: currencyCodeSchema,
     object: optionalTrimmedString(),
-    name: z.preprocess(
-        (value) => (typeof value === 'string' ? value.trim() : value),
-        z.string().min(1),
-    ),
+    name: optionalTrimmedString(),
     email: optionalEmailSchema,
     address: optionalTrimmedString(),
-    country: z.preprocess(
-        (value) => (typeof value === 'string' ? value.trim() : value),
-        z.string().min(1),
-    ),
+    country: optionalTrimmedString(countryCodeSchema),
+}).superRefine((input, context) => {
+    if (input.whichWallet !== 'new') return;
+    if (!input.name) context.addIssue({ code: 'custom', path: ['name'], message: 'Customer name is required for a new wallet' });
+    if (!input.country) context.addIssue({ code: 'custom', path: ['country'], message: 'Customer country is required for a new wallet' });
 });
 
 export const getInvoiceInputSchema = z.object({

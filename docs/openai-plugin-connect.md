@@ -28,6 +28,8 @@ personal keys and access tokens issued for another MCP resource are rejected in
 OAuth mode. The identity is a user; merchant choice remains in the conversation
 and is passed as `merchantId`. API membership checks stay in Bitlink.
 
+For local Laravel on port 8311, follow [Local backend integration](backend-integration.md).
+
 ## Deployment configuration
 
 Node.js 22.13 or later is required (the store uses built-in `node:sqlite`). Run
@@ -41,8 +43,8 @@ Set these server variables:
 ```dotenv
 AUTH_MODE=oauth
 BITLINK_MCP_URL=https://mcp.example.com/mcp
-CRYPTO_API_BASE_URL=https://bitlink.example.com/api/v1
-BITLINK_OAUTH_BASE_URL=https://bitlink.example.com
+CRYPTO_API_BASE_URL=https://api.example.com/api/v1
+BITLINK_OAUTH_BASE_URL=https://auth.example.com
 BITLINK_OAUTH_CLIENT_ID=<client registered in Bitlink>
 # Optional, only for a confidential Bitlink client:
 BITLINK_OAUTH_CLIENT_SECRET=
