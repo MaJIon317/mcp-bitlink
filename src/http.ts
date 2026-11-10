@@ -9,6 +9,7 @@ import {
     type AuthInfo,
 } from '@modelcontextprotocol/server';
 import { toNodeHandler } from '@modelcontextprotocol/node';
+import { requiredToolScopes, type ToolName } from './config/tool-policy.js';
 import { env } from './config/env.js';
 import { extractBearerToken } from './auth/bearer.js';
 import { createConsoleLogger } from './logging/index.js';
@@ -114,10 +115,10 @@ function createHandlers(oauth: OAuthService | null) {
                 const body = (() => { try { return JSON.parse(raw); } catch { return null; } })() as { method?: string; params?: { name?: string } } | null;
                 if (['initialize', 'tools/list', 'tools/call', 'notifications/initialized', 'ping'].includes(body?.method ?? '')) rpcMethod = body?.method;
                 const name = body?.method === 'tools/call' ? body.params?.name : undefined;
-                const required = name === 'create_invoice' ? 'invoices.create'
-                    : name && ['list_invoices', 'get_invoice'].includes(name) ? 'invoices.read' : null;
-                if (required && !authInfo.scopes.includes(required)) {
-                    return withCors(oauth.unauthorized(403, 'insufficient_scope', required), request);
+                const required = name && !env.MCP_DISABLED_TOOLS.includes(name as ToolName)
+                    ? requiredToolScopes(name).filter(scope => !authInfo.scopes.includes(scope)) : [];
+                if (required.length) {
+                    return withCors(oauth.unauthorized(403, 'insufficient_scope', required.join(' ')), request);
                 }
             }
             const response = await mcpHandler.fetch(request, {
@@ -163,6 +164,7 @@ function configuredOAuth(): { oauth: OAuthService; store: OAuthStore } | null {
     const oauth = new OAuthService({ publicUrl: BITLINK_MCP_URL, upstreamUrl: BITLINK_OAUTH_BASE_URL,
         upstreamClientId: BITLINK_OAUTH_CLIENT_ID, clients: clients as Record<string, { redirectUris: string[] }>, store,
         ...(env.BITLINK_OAUTH_CLIENT_SECRET ? { upstreamClientSecret: env.BITLINK_OAUTH_CLIENT_SECRET } : {}),
+        disabledTools: env.MCP_DISABLED_TOOLS,
         timeoutMs: env.CRYPTO_API_TIMEOUT_MS,
         clientMetadataOrigins: env.OAUTH_CLIENT_METADATA_ORIGINS.split(',').map(value => value.trim()).filter(Boolean),
     });

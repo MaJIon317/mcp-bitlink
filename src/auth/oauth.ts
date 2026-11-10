@@ -4,8 +4,8 @@ import { ClientMetadataResolver, ClientMetadataError } from './client-metadata.j
 import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 import type { AuthInfo } from '@modelcontextprotocol/server';
 import { OAuthStore, tokenHash } from './store.js';
+import { enabledOAuthScopes, type ToolName } from '../config/tool-policy.js';
 
-export const oauthScopes = ['invoices.read', 'invoices.create'];
 const random = () => randomBytes(32).toString('base64url');
 const challenge = (verifier: string) => createHash('sha256').update(verifier).digest('base64url');
 const equal = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
@@ -19,6 +19,7 @@ export interface OAuthConfig {
     upstreamClientSecret?: string;
     clients: Record<string, { redirectUris: string[] }>;
     store: OAuthStore;
+    disabledTools?: readonly ToolName[];
     timeoutMs?: number;
     clientMetadataOrigins?: string[];
 }
@@ -48,6 +49,7 @@ function secureUrl(value: string, allowQuery = false) {
 
 /** OAuth authorization server for MCP, federated to the existing Bitlink Passport server. */
 export class OAuthService {
+    readonly scopes: readonly string[];
     readonly issuer: string;
     readonly resource: string;
     readonly metadataUrl: string;
@@ -55,6 +57,7 @@ export class OAuthService {
     private readonly clientMetadata: ClientMetadataResolver;
     private readonly refreshing = new Map<string, Promise<Connection>>();
     constructor(private readonly config: OAuthConfig) {
+        this.scopes = enabledOAuthScopes(config.disabledTools);
         this.clientMetadata = new ClientMetadataResolver(config.clientMetadataOrigins, config.timeoutMs);
         const publicUrl = secureUrl(config.publicUrl);
         if (publicUrl.pathname !== '/mcp') throw new Error('BITLINK_MCP_URL must use the /mcp path');
@@ -69,10 +72,10 @@ export class OAuthService {
             for (const uri of client.redirectUris) secureUrl(uri, true);
         }
     }
-    challenge(error = 'invalid_token', scope = 'invoices.read') {
-        return `Bearer resource_metadata="${this.metadataUrl}", scope="${scope}", error="${error}", error_description="Authorization required"`;
+    challenge(error = 'invalid_token', scope = this.scopes.join(' ')) {
+        return `Bearer resource_metadata="${this.metadataUrl}", ${scope ? `scope="${scope}", ` : ''}error="${error}", error_description="Authorization required"`;
     }
-    unauthorized(status = 401, error = 'invalid_token', scope = 'invoices.read') {
+    unauthorized(status = 401, error = 'invalid_token', scope = this.scopes.join(' ')) {
         const response = json({ error, error_description: 'Authorization required' }, status);
         response.headers.set('WWW-Authenticate', this.challenge(error, scope));
         return response;
@@ -125,13 +128,13 @@ export class OAuthService {
         if (request.method !== expected) return json({ error: 'invalid_request' }, 405);
         try {
             if (path.startsWith('/.well-known/oauth-protected-resource')) {
-                return json({ resource: this.resource, authorization_servers: [this.issuer], scopes_supported: oauthScopes,
+                return json({ resource: this.resource, authorization_servers: [this.issuer], scopes_supported: this.scopes,
                     bearer_methods_supported: ['header'], resource_name: 'Bitlink MCP' });
             }
             if (path === '/.well-known/oauth-authorization-server') {
                 return json({ issuer: this.issuer, authorization_endpoint: `${this.issuer}/oauth/authorize`, token_endpoint: `${this.issuer}/oauth/token`,
                     revocation_endpoint: `${this.issuer}/oauth/revoke`, response_types_supported: ['code'], grant_types_supported: ['authorization_code', 'refresh_token'],
-                    token_endpoint_auth_methods_supported: ['none'], code_challenge_methods_supported: ['S256'], scopes_supported: oauthScopes,
+                    token_endpoint_auth_methods_supported: ['none'], code_challenge_methods_supported: ['S256'], scopes_supported: this.scopes,
                     client_id_metadata_document_supported: true, authorization_response_iss_parameter_supported: true });
             }
             if (path === '/oauth/authorize') return await this.authorize(url.searchParams);
@@ -165,8 +168,8 @@ export class OAuthService {
             if (this.single(params, 'response_type') !== 'code' || this.single(params, 'code_challenge_method') !== 'S256' || !/^[A-Za-z0-9_-]{43}$/.test(pkce) || !state || state.length > 2048) {
                 throw new OAuthFailure('invalid_request', 'Authorization code, state and S256 PKCE are required');
             }
-            const scopes = (this.single(params, 'scope') || 'invoices.read').split(' ').filter(Boolean);
-            if (!scopes.length || scopes.some(scope => !oauthScopes.includes(scope))) throw new OAuthFailure('invalid_scope', 'Unsupported scope');
+            const scopes = (this.single(params, 'scope') || this.scopes.join(' ')).split(' ').filter(Boolean);
+            if (scopes.some(scope => !this.scopes.includes(scope))) throw new OAuthFailure('invalid_scope', 'Unsupported scope');
             const verifier = random();
             const upstreamState = random();
             this.config.store.put(`pending:${tokenHash(upstreamState)}`, { resource: this.resource, clientId: id, redirectUri, state, pkce, scopes, verifier } satisfies Pending, now() + minutes(10));

@@ -37,6 +37,11 @@ Disabled tools are not registered: they are absent from `tools/list`, including
 schemas and descriptions, and cannot be called. Any tool in the table above can
 be disabled. An empty value enables all tools; unknown names fail startup to
 catch typos. The example configuration disables invoice creation.
+OAuth discovery, authorization defaults and authentication challenges derive their
+scopes from enabled tools: `invoices.create` for `create_invoice`, `invoices.read`
+for `list_invoices` or `get_invoice`. Profile and merchant tools require authentication
+without additional scopes. Requests for disabled scopes are rejected; reconnect
+after changing tools to grant the updated permissions.
 
 The server reads `.env` from its working directory and process environment, not
 `.env.example`. Process environment values take precedence over `.env`.

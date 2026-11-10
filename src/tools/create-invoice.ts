@@ -1,3 +1,4 @@
+import { toolScopes } from '../config/tool-policy.js';
 import { McpServer } from '@modelcontextprotocol/server';
 import { createInvoiceInputSchema } from '../schemas/invoice.js';
 import type { InvoicesApi } from '../api/resources/invoices.js';
@@ -19,7 +20,7 @@ export function registerCreateInvoiceTool(
                 'Create a payment invoice for the merchant selected by the user. ' +
                 'If the user did not say who the wallet is for, ask whether it is for a new user/customer or the current/existing user, ' +
                 'then set whichWallet to "new" or "user" accordingly. For a new wallet, collect name and the ISO alpha-2 country code (US, DE); for an existing user wallet, customer details are not required. Returns the invoice and payment link.',
-            _meta: { securitySchemes: [{ type: 'oauth2', scopes: ['invoices.create'] }] },
+            _meta: { securitySchemes: [{ type: 'oauth2', scopes: [...toolScopes.create_invoice] }] },
             inputSchema: createInvoiceInputSchema,
         },
         async (input) => {

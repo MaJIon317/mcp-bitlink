@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import type { ToolName } from '../../src/config/tool-policy.js';
 import { OAuthService } from '../../src/auth/oauth.js';
 import { OAuthStore } from '../../src/auth/store.js';
 
@@ -25,9 +26,9 @@ beforeEach(() => {
     })));
 });
 afterEach(() => { store.close(); rmSync(folder, { recursive: true, force: true }); vi.restoreAllMocks(); vi.useRealTimers(); });
-function service() {
+function service(disabledTools: readonly ToolName[] = []) {
     return new OAuthService({ publicUrl: resource, upstreamUrl: 'https://bitlink.example.test', upstreamClientId: 'passport-client',
-        clients: { chatgpt: { redirectUris: [callback] }, other: { redirectUris: ['https://other.example.test/callback'] } }, store });
+        clients: { chatgpt: { redirectUris: [callback] }, other: { redirectUris: ['https://other.example.test/callback'] } }, store, disabledTools });
 }
 async function handle(path: string, params?: Record<string, string>, method = 'POST') {
     return (await oauth.handle(new Request(`https://mcp.example.test${path}`, params ? {
@@ -66,6 +67,33 @@ async function login(scope?: string) {
 }
 
 describe('MCP OAuth federation', () => {
+    it.each<{ disabled: ToolName[]; scopes: string[] }>([
+        { disabled: [], scopes: ['invoices.read', 'invoices.create'] },
+        { disabled: ['create_invoice'], scopes: ['invoices.read'] },
+        { disabled: ['list_invoices'], scopes: ['invoices.create', 'invoices.read'] },
+        { disabled: ['list_invoices', 'get_invoice'], scopes: ['invoices.create'] },
+        { disabled: ['list_invoices', 'get_invoice', 'create_invoice'], scopes: [] },
+    ])('derives discovery, challenges and default authorization from enabled tools: $disabled', async ({ disabled, scopes }) => {
+        oauth = service(disabled);
+        for (const path of ['/.well-known/oauth-protected-resource/mcp', '/.well-known/oauth-authorization-server']) {
+            expect((await (await handle(path)).json()).scopes_supported).toEqual(scopes);
+        }
+        const challenge = oauth.unauthorized().headers.get('WWW-Authenticate')!;
+        if (scopes.length) expect(challenge).toContain(`scope="${scopes.join(' ')}"`);
+        else expect(challenge).not.toContain('scope=');
+        const response = await authorize({ scope: '' });
+        const target = new URL(response.headers.get('location')!);
+        expect(target.origin).toBe('https://bitlink.example.test');
+        expect(target.searchParams.get('scope')).toBe(scopes.join(' '));
+        const tokens = await login(scopes.join(' '));
+        expect(tokens.scope).toBe(scopes.join(' '));
+        expect((await oauth.authenticate(tokens.access_token))?.authInfo.scopes).toEqual(scopes);
+        for (const scope of ['invoices.read', 'invoices.create'].filter(scope => !scopes.includes(scope))) {
+            const rejected = await authorize({ scope });
+            expect(new URL(rejected.headers.get('location')!).searchParams.get('error')).toBe('invalid_scope');
+        }
+    });
+
     it('publishes resource and authorization-server discovery', async () => {
         const protectedResource = await (await handle('/.well-known/oauth-protected-resource/mcp')).json();
         expect(protectedResource.resource).toBe(resource);
